@@ -20,7 +20,7 @@ class Monkey:
     if '+' in self.operation:
       # Add operation
       if debug:
-        print('\t\tWorry level increases', end=' ')
+        print('    Worry level increases', end=' ')
       op_terms = self.operation.split(' + ')
 
       first_term = item if op_terms[0] == 'old' else int(op_terms[0])
@@ -41,7 +41,7 @@ class Monkey:
     elif '*' in self.operation:
       # multiply operation
       if debug:
-        print('\t\tWorry level is multiplied', end=' ')
+        print('    Worry level is multiplied', end=' ')
       op_terms = self.operation.split(' * ')
 
       first_term = item if op_terms[0] == 'old' else int(op_terms[0])
@@ -64,19 +64,19 @@ class Monkey:
     result = item // self.RELIEF_DAMPENER
 
     if debug:
-      print(f'\t\tMonkey gets bored with item. Worry level is divided by {self.RELIEF_DAMPENER} to {result}')
+      print(f'    Monkey gets bored with item. Worry level is divided by {self.RELIEF_DAMPENER} to {result}')
 
     return result
   
   def get_throw_destination(self, item, debug=False):
     if item % self.test_number == 0:
       if debug:
-        print(f'\t\tCurrent worry level is divisible by {self.test_number}')
+        print(f'    Current worry level is divisible by {self.test_number}')
 
       return self.test_true_destination
     else:
       if debug:
-        print(f'\t\tCurrent worry level is divisible by {self.test_number}')
+        print(f'    Current worry level is divisible by {self.test_number}')
 
       return self.test_false_destination
   
@@ -87,7 +87,7 @@ class Monkey:
     item = self.items.pop(0)
     self.inspect_count += 1
     if debug:
-      print(f'\tMonkey {self.id} inspects an item with worry level {item}')
+      print(f'  Monkey {self.id} inspects an item with worry level {item}')
     
     item = self.execute_operation(item, debug)
     item = self.relief_dampener(item, debug)
@@ -95,7 +95,7 @@ class Monkey:
     destination = self.get_throw_destination(item)
 
     if debug:
-      print(f'\t\tItem with worry level {item} is thrown to monkey {destination}')
+      print(f'    Item with worry level {item} is thrown to monkey {destination}')
 
     return (item, destination)
 
@@ -147,6 +147,9 @@ DEBUG_ROUND_ITEMS = False
 DEBUG_INSPECT_COUNTS = False
 
 for round in range(NUMBER_ROUNDS):
+  if DEBUG_STEP_BY_STEP:
+    print(f'--- Round {round} ---')
+
   for monkey in monkey_list:
     if DEBUG_STEP_BY_STEP:
       print(f'Monkey {monkey.id}:')
@@ -176,6 +179,7 @@ for round in range(NUMBER_ROUNDS):
     print()
 
 if DEBUG_INSPECT_COUNTS:
+  print(f'After all {NUMBER_ROUNDS} rounds:')
   for monkey in monkey_list:
     print(f'Monkey {monkey.id} inspected items {monkey.inspect_count} times')
   print()

@@ -19,7 +19,7 @@ class Monkey:
     if '+' in self.operation:
       # Add operation
       if debug:
-        print('\t\tWorry level increases', end=' ')
+        print('    Worry level increases', end=' ')
       op_terms = self.operation.split(' + ')
 
       first_term = item if op_terms[0] == 'old' else int(op_terms[0])
@@ -40,7 +40,7 @@ class Monkey:
     elif '*' in self.operation:
       # multiply operation
       if debug:
-        print('\t\tWorry level is multiplied', end=' ')
+        print('    Worry level is multiplied', end=' ')
       op_terms = self.operation.split(' * ')
 
       first_term = item if op_terms[0] == 'old' else int(op_terms[0])
@@ -59,21 +59,26 @@ class Monkey:
 
       return result
   
-  def damp_number(self, item):
-    if self.dampener > 0:
-      return item % self.dampener
+  def damp_number(self, item, debug=False):
+    if self.dampener > 0 and item > dampener:
+      dampened_item = item % self.dampener
 
-    return item
+      if debug:
+        print(f'  Item worry too big, dampened from {item} to {dampened_item}')
+
+      return dampened_item
+    else:
+      return item
 
   def get_throw_destination(self, item, debug=False):
     if item % self.test_number == 0:
       if debug:
-        print(f'\t\tCurrent worry level is divisible by {self.test_number}')
+        print(f'    Current worry level is divisible by {self.test_number}')
 
       return self.test_true_destination
     else:
       if debug:
-        print(f'\t\tCurrent worry level is divisible by {self.test_number}')
+        print(f'    Current worry level is divisible by {self.test_number}')
 
       return self.test_false_destination
   
@@ -84,15 +89,15 @@ class Monkey:
     item = self.items.pop(0)
     self.inspect_count += 1
     if debug:
-      print(f'\tMonkey {self.id} inspects an item with worry level {item}')
+      print(f'  Monkey {self.id} inspects an item with worry level {item}')
     
     item = self.execute_operation(item, debug)
-    item = self.damp_number(item)
+    item = self.damp_number(item, debug)
 
     destination = self.get_throw_destination(item)
 
     if debug:
-      print(f'\t\tItem with worry level {item} is thrown to monkey {destination}')
+      print(f'    Item with worry level {item} is thrown to monkey {destination}')
 
     return (item, destination)
 
@@ -136,14 +141,6 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
       test_false_destination = int(l_strip.removeprefix('If false: throw to monkey '))
       current_monkey.test_false_destination = test_false_destination
 
-NUMBER_ROUNDS = 10000
-MOST_ACTIVE_NUMBERS = 2
-
-DEBUG_STEP_BY_STEP = False
-DEBUG_ROUND_ITEMS = False
-DEBUG_INSPECT_COUNTS = False
-DEBUG_INSPECT_COUNTS_ROUND_DIVISOR = 1000
-
 """
 HOW TO KEEP YOUR WORRY LEVELS MANAGEABLE
 
@@ -174,6 +171,14 @@ for monkey in monkey_list:
 for monkey in monkey_list:
   monkey.dampener = dampener
 
+NUMBER_ROUNDS = 10000
+MOST_ACTIVE_NUMBERS = 2
+
+DEBUG_STEP_BY_STEP = False
+DEBUG_ROUND_ITEMS = False
+DEBUG_INSPECT_COUNTS = False
+DEBUG_INSPECT_COUNTS_ROUND_DIVISOR = 1000
+
 for round in range(1, NUMBER_ROUNDS+1):
   debug_step_by_step = (DEBUG_STEP_BY_STEP
       and round % DEBUG_INSPECT_COUNTS_ROUND_DIVISOR == 0)
@@ -182,6 +187,9 @@ for round in range(1, NUMBER_ROUNDS+1):
   debug_inspect_counts = (DEBUG_INSPECT_COUNTS
       and round % DEBUG_INSPECT_COUNTS_ROUND_DIVISOR == 0)
 
+  if debug_step_by_step:
+    print(f'--- Round {round} ---')
+  
   for monkey in monkey_list:
     if debug_step_by_step:
       print(f'Monkey {monkey.id}:')
