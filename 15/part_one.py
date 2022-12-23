@@ -118,20 +118,28 @@ class Cave:
   def count_positions_can_not_have_beacon(self, target_y):
     positions = set()
 
-    sensor_coords = [x.coord for x in self._sensor_list]
-    beacon_coords = [x.coord for x in self._beacon_list]
-
     for sensor in self._sensor_list:
       sensor_x, sensor_y = sensor.coord
       distance = sensor.distance_to_closest_beacon
 
-      if sensor_y + distance >= target_y:
-        for coord_x in range(sensor_x - distance, sensor_x+distance + 1):
-          coord = (coord_x, target_y)
-          if coord not in sensor_coords and coord not in beacon_coords:
-            if get_manhattan_distance(coord, sensor.coord) <= distance:
-              positions.add(coord)
+      if (sensor_y + distance >= target_y
+          and sensor_y - distance <= target_y):
+
+        x_coords = [
+          -distance + abs(target_y - sensor_y) + sensor_x,
+          distance - abs(target_y - sensor_y) + sensor_x
+        ]
+
+        x_start = min(x_coords)
+        x_end = max(x_coords)
+
+        positions = positions.union(range(x_start, x_end+1))
     
+    sensor_coords_set = {x.coord[0] for x in self._sensor_list if x.coord[1] == target_y}
+    beacon_coords_set = {x.coord[0] for x in self._beacon_list if x.coord[1] == target_y}
+    
+    positions = positions - sensor_coords_set - beacon_coords_set
+
     return len(positions)
 
   def __str__(self) -> str:
