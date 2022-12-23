@@ -125,6 +125,15 @@ class Cave:
       if (sensor_y + distance >= target_y
           and sensor_y - distance <= target_y):
 
+        
+        """
+        Values of x found by isolation x in the Manhattan distance equation:
+        |x - a| + |y - b| = d
+
+        Or, using the current variables:
+        |x - sensor_x| + |sensor_y - target_y| = distance
+        """
+
         x_coords = [
           -distance + abs(target_y - sensor_y) + sensor_x,
           distance - abs(target_y - sensor_y) + sensor_x
