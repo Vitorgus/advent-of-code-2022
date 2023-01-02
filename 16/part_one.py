@@ -71,15 +71,15 @@ class Cave:
     
     return pressure
 
-def get_min_path(cave: Cave, start_valve_name: str):
+def get_min_paths(cave: Cave, start_valve_name: str):
   # Calculate min distance from a node using Dijkstra's algorithm
   valves_to_explore = [start_valve_name]
   valves_explored = []
 
-  min_distance = { start_valve_name: 0 }
+  min_paths = { start_valve_name: [] }
 
   while len(valves_to_explore) > 0:
-    valve_name = min(valves_to_explore, key=lambda x: min_distance[x])
+    valve_name = min(valves_to_explore, key=lambda x: len(min_paths[x]))
     valve = cave.get_valve(valve_name)
 
     valves_to_explore.remove(valve_name)
@@ -89,16 +89,16 @@ def get_min_path(cave: Cave, start_valve_name: str):
       if next_valve_name in valves_explored:
         continue
 
-      current_distance = min_distance[valve_name] + 1
+      current_path = min_paths[valve_name] + [next_valve_name]
 
       if next_valve_name in valves_to_explore:
-        if current_distance < min_distance[next_valve_name]:
-          min_distance[next_valve_name] = current_distance
+        if len(current_path) < len(min_paths[next_valve_name]):
+          min_paths[next_valve_name] = current_path
       else:
         valves_to_explore.append(next_valve_name)
-        min_distance[next_valve_name] = current_distance
+        min_paths[next_valve_name] = current_path
   
-  return min_distance
+  return min_paths
 
 def get_all_min_paths(cave: Cave):
   # Get the min distance to all nodes
@@ -106,7 +106,7 @@ def get_all_min_paths(cave: Cave):
 
   for valve in cave.valves:
     valve_name = valve.name
-    all_min_paths[valve_name] = get_min_path(cave, valve_name)
+    all_min_paths[valve_name] = get_min_paths(cave, valve_name)
   
   return all_min_paths
 
@@ -140,31 +140,72 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
 
 all_min_paths = get_all_min_paths(cave)
 
-def get_max_pressure(cave: Cave, current_valve: Valve, time: int):
+def get_max_pressure(cave: Cave, current_valve: Valve, time: int) -> tuple[int, list[list[str]]]:
   if time <= 0 or not cave.has_closed_working_valves():
-    return 0
+    return (0, [])
 
   remaining_time = time
-
   possible_valves = cave.get_closed_working_valves()
+  min_path = all_min_paths[current_valve.name]
   
   total_pressure = 0
-  min_distance = all_min_paths[current_valve.name]
+  steps = []
 
   for next_valve in possible_valves:
     next_valve.open()
 
-    remaining_time = time - min_distance[next_valve.name] - TIME_TO_OPEN_VALVE
+    remaining_time = time - len(min_path[next_valve.name]) - TIME_TO_OPEN_VALVE
     next_valve_pressure = next_valve.flow * remaining_time
-    possible_total_pressure = next_valve_pressure + get_max_pressure(cave, next_valve, remaining_time)
+
+    next_max_pressure, next_max_steps = get_max_pressure(cave, next_valve, remaining_time)
+    possible_total_pressure = next_valve_pressure + next_max_pressure
 
     if possible_total_pressure > total_pressure:
       total_pressure = possible_total_pressure
+      steps = [min_path[next_valve.name]] + next_max_steps
     
     next_valve.close()
 
-  return total_pressure
+  return (total_pressure, steps)
 
 start_valve = cave.get_valve(VALVE_START)
 
-print(get_max_pressure(cave, start_valve, TOTAL_TIME))
+pressure, steps = get_max_pressure(cave, start_valve, TOTAL_TIME)
+
+if DEBUG_PRINT:
+  current_step = steps.pop(0)
+  target_valve = current_step[-1]
+
+  for minute in range(1, TOTAL_TIME+1):
+    print(f'== Minute {minute} ==')
+
+    open_valves = cave.get_open_valves()
+    current_pressure = cave.get_current_pressure()
+    if len(open_valves) == 0:
+      print('No valves are open')
+    elif len(open_valves) == 1:
+      print(f'Valve {open_valves[0]} is open, releasing {current_pressure} pressure')
+    else:
+      valves_string = ''
+      for valve in open_valves[:-2]:
+        valves_string += f'{valve}, '
+      valves_string += f'{open_valves[-2]} and {open_valves[-1]}'
+      print(f'Valves {valves_string} are open, releasing {current_pressure} pressure.')
+    
+    if len(current_step) > 0:
+      current_valve = current_step.pop(0)
+      print(f'You move to valve {current_valve}')
+    elif target_valve != None:
+      cave.get_valve(target_valve).open()
+      print(f'You open valve {target_valve}')
+      if len(steps) > 0:
+        current_step = steps.pop(0)
+        target_valve = current_step[-1]
+      else:
+        target_valve = None
+    
+    print()
+  
+  print(f'Maximum pressure: {pressure}')
+else:
+  print(pressure)
