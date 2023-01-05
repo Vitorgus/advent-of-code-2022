@@ -60,7 +60,7 @@ class Cave:
     return False
   
   def get_closed_working_valves(self):
-    return [x for x in self.valves if x.flow > 0 and not x.is_open]
+    return {x for x in self.valves if x.flow > 0 and not x.is_open}
   
   def get_current_pressure(self):
     valves = self.get_open_valves()
@@ -140,16 +140,73 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
 
 all_min_paths = get_all_min_paths(cave)
 
+# Cache using tuple as keys
+# Cache keys: current valve, remaining valves
+# Returns the steps to reach the valves
+
+cache = {}
+
+def set_cache(current_valve: Valve, remaining_valves: list[Valve], steps):
+  current_valve_name = current_valve.name
+  remaining_valves_tuple = tuple(remaining_valves)
+  cache_key = (current_valve_name, remaining_valves_tuple)
+  cache[cache_key] = steps
+
+def get_cache(current_valve: Valve, remaining_valves: list[Valve]):
+  current_valve_name = current_valve.name
+  remaining_valves_tuple = tuple(remaining_valves)
+  cache_key = (current_valve_name, remaining_valves_tuple)
+
+  if cache_key not in cache:
+    return []
+  else:
+    return cache[cache_key]
+
 def get_max_pressure(cave: Cave, current_valve: Valve, time_limit: int) -> tuple[int, list[list[str]]]:
   if time_limit <= 0 or not cave.has_closed_working_valves():
     return (0, [])
 
-  possible_valves = cave.get_closed_working_valves()
   min_path = all_min_paths[current_valve.name]
-  
+
+  possible_valves = cave.get_closed_working_valves()
   max_pressure = 0
   steps = []
 
+  cache_steps = get_cache(current_valve, possible_valves)
+  if len(cache_steps) > 0:
+    cache_valves: set[Valve] = set()
+    remaining_time = time_limit
+    target_valve = current_valve
+
+    for step in cache_steps:
+      elapsed_time = len(step) + TIME_TO_OPEN_VALVE
+      remaining_time -= elapsed_time
+
+      if remaining_time < 0:
+        break
+
+      steps.append(step)
+
+      target_valve_name = step[-1]
+      target_valve = cave.get_valve(target_valve_name)
+      target_valve.open()
+
+      cache_valves.add(target_valve)
+
+      max_pressure += target_valve.flow * remaining_time
+    
+    if cave.has_closed_working_valves():
+      next_max_pressure, next_max_steps = get_max_pressure(cave, target_valve, remaining_time)
+      max_pressure += next_max_pressure
+      steps += next_max_steps
+
+      set_cache(current_valve, possible_valves, steps)
+
+    for valve in cache_valves:
+      valve.close()
+    
+    return (max_pressure, steps)
+  
   for next_valve in possible_valves:
     next_valve.open()
 
@@ -165,7 +222,11 @@ def get_max_pressure(cave: Cave, current_valve: Valve, time_limit: int) -> tuple
       steps = [min_path[next_valve.name]] + next_max_steps
     
     next_valve.close()
+  
 
+  if len(cache_steps) == 0:
+    set_cache(current_valve, possible_valves, steps)
+  
   return (max_pressure, steps)
 
 start_valve = cave.get_valve(VALVE_START)
