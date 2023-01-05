@@ -140,33 +140,33 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
 
 all_min_paths = get_all_min_paths(cave)
 
-def get_max_pressure(cave: Cave, current_valve: Valve, time: int) -> tuple[int, list[list[str]]]:
-  if time <= 0 or not cave.has_closed_working_valves():
+def get_max_pressure(cave: Cave, current_valve: Valve, time_limit: int) -> tuple[int, list[list[str]]]:
+  if time_limit <= 0 or not cave.has_closed_working_valves():
     return (0, [])
 
-  remaining_time = time
   possible_valves = cave.get_closed_working_valves()
   min_path = all_min_paths[current_valve.name]
   
-  total_pressure = 0
+  max_pressure = 0
   steps = []
 
   for next_valve in possible_valves:
     next_valve.open()
 
-    remaining_time = time - len(min_path[next_valve.name]) - TIME_TO_OPEN_VALVE
-    next_valve_pressure = next_valve.flow * remaining_time
+    elapsed_time = len(min_path[next_valve.name]) + TIME_TO_OPEN_VALVE
+    remaining_time = time_limit - elapsed_time
+    valve_pressure = next_valve.flow * remaining_time
 
     next_max_pressure, next_max_steps = get_max_pressure(cave, next_valve, remaining_time)
-    possible_total_pressure = next_valve_pressure + next_max_pressure
+    pressure = valve_pressure + next_max_pressure
 
-    if possible_total_pressure > total_pressure:
-      total_pressure = possible_total_pressure
+    if pressure > max_pressure:
+      max_pressure = pressure
       steps = [min_path[next_valve.name]] + next_max_steps
     
     next_valve.close()
 
-  return (total_pressure, steps)
+  return (max_pressure, steps)
 
 start_valve = cave.get_valve(VALVE_START)
 
