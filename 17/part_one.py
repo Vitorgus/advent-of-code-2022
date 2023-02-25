@@ -96,7 +96,7 @@ class Chamber:
 
     self.movement_index = 0
 
-    self.rock_positions = []
+    self.rock_positions: dict[Position, bool] = {}
   
   def get_next_rock(self) -> Rock:
     rock = self.rocks[self.rock_index]
@@ -170,7 +170,8 @@ class Chamber:
 
       if self.check_collision(new_pos):
         current_rock_positions = self.current_rock.get_positions(self.current_rock_pos)
-        self.rock_positions += current_rock_positions
+        for pos in current_rock_positions:
+          self.rock_positions[pos] = True
 
         _, max_y = max(current_rock_positions, key= lambda x : x[1])
         if max_y > self.highest_rock_height:
