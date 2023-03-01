@@ -3,7 +3,8 @@ from enum import Enum, auto
 
 # Puzzle inputs and settings
 FILE_NAME = "input.txt"
-DEBUG_PRINT = False
+DEBUG_PRINT_STEP_BY_STEP = False
+DEBUG_PRINT_FINAL_CHAMBER = False
 
 CHAMBER_WIDTH = 7
 ROCK_SPAWN_LEFT_OFFSET = 2
@@ -219,8 +220,12 @@ while i < NUMBER_OF_ROCKS:
 
   if chamber.has_rock_just_finished_falling:
     i += 1
-    if DEBUG_PRINT:
+    if DEBUG_PRINT_STEP_BY_STEP:
       chamber.print_chamber()
       print()
+
+if not DEBUG_PRINT_STEP_BY_STEP and DEBUG_PRINT_FINAL_CHAMBER:
+  chamber.print_chamber()
+  print()
 
 print(chamber.get_rock_tower_height())
