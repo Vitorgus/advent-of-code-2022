@@ -2,8 +2,8 @@ import os
 from enum import Enum, auto
 
 # Puzzle inputs and settings
-FILE_NAME = "example.txt"
-DEBUG_PRINT = True
+FILE_NAME = "input.txt"
+DEBUG_PRINT = False
 
 CHAMBER_WIDTH = 7
 ROCK_SPAWN_LEFT_OFFSET = 2
@@ -95,6 +95,11 @@ class JetPatternManager:
   def reset(self):
     self.current_index = 0
 
+class CycleDetectionStep(Enum):
+  SEARCHING = auto()
+  AWAITING_SECOND_LOOP = auto()
+  FINISHED = auto()
+
 class Chamber:
   def __init__(self, width: int, jet_pattern: str) -> None:
     self.width = width
@@ -125,13 +130,14 @@ class Chamber:
     self.rock_positions: dict[Position, bool] = {}
 
     # Cycle detection
-    self.is_cycle_detected = False
+    self.cycle_detection_step = CycleDetectionStep.SEARCHING
     self.rocks_info: list[tuple[str, Position, int]] = []
     self.height_info: list[int] = []
     self.tortoise_index = 1
     self.hare_index = 2
     self.cycle_height_info: list[int] = []
     self.cycle_start = 0
+    self.cycle_length = 0
   
   def get_next_rock(self) -> Rock:
     rock = self.rocks[self.rock_index]
@@ -175,6 +181,9 @@ class Chamber:
   
   def get_rock_tower_height(self) -> int:
     return self.highest_rock_height + 1
+
+  def is_cycle_detected(self) -> bool:
+    return self.cycle_detection_step == CycleDetectionStep.FINISHED
 
   def print_chamber(self):
     max_current_rock_pos = max(self.current_rock.get_positions(self.current_rock_pos), key= lambda x : x[1])
@@ -236,7 +245,7 @@ class Chamber:
           self.current_rock_pos = new_pos
   
   def detect_cycle_step(self):
-    if self.is_cycle_detected:
+    if self.cycle_detection_step == CycleDetectionStep.FINISHED:
       return
     else:
       relative_rock_pos = subtract_positions(self.previous_rock_pos, self.current_rock_pos) if self.previous_rock_pos != None else None
@@ -250,57 +259,64 @@ class Chamber:
       self.rocks_info.append(cycle_detection_info)
       self.height_info.append(self.highest_rock_height)
 
-      if len(self.rocks_info) > self.hare_index:
-        tortoise = self.rocks_info[self.tortoise_index]
-        hare = self.rocks_info[self.hare_index]
+      if self.cycle_detection_step == CycleDetectionStep.AWAITING_SECOND_LOOP:
+        self.tortoise_index += 1
+        second_loop_end = self.cycle_start + (2 * self.cycle_length)
 
-        if tortoise == hare:
-          self.is_cycle_detected = True
+        if self.tortoise_index >= second_loop_end:
+          second_loop_start = self.cycle_start + self.cycle_length
 
-          if DEBUG_PRINT:
-            print("Cycle detected!")
-            print(f"Hare and tortoise first met at index {self.tortoise_index}")
-            print()
-
-          self.hare_index = self.tortoise_index
-          self.tortoise_index = 0
-
+          self.cycle_height_info = [x - self.height_info[second_loop_start-1] for x in self.height_info[second_loop_start:second_loop_end]]
+          self.cycle_detection_step = CycleDetectionStep.FINISHED
+      else:
+        if len(self.rocks_info) > self.hare_index:
           tortoise = self.rocks_info[self.tortoise_index]
           hare = self.rocks_info[self.hare_index]
 
-          while tortoise != hare:
-            self.hare_index += 1
+          if tortoise != hare:
             self.tortoise_index += 1
+            self.hare_index += 2
+          else:
+            if DEBUG_PRINT:
+              print("Cycle detected!")
+              print(f"Hare and tortoise first met at index {self.tortoise_index}")
+              print()
+
+            self.hare_index = self.tortoise_index
+            self.tortoise_index = 0
 
             tortoise = self.rocks_info[self.tortoise_index]
             hare = self.rocks_info[self.hare_index]
-          
-          if DEBUG_PRINT:
-            print("Start of loop found!")
-            print(f"Hare and tortoise met at the start of the loop at index {self.tortoise_index}")
-            print()
-          
-          self.cycle_start = self.tortoise_index
 
-          self.tortoise_index += 1
-          tortoise = self.rocks_info[self.tortoise_index]
+            while tortoise != hare:
+              self.hare_index += 1
+              self.tortoise_index += 1
 
-          while tortoise != hare:
+              tortoise = self.rocks_info[self.tortoise_index]
+              hare = self.rocks_info[self.hare_index]
+            
+            if DEBUG_PRINT:
+              print("Start of cycle found!")
+              print(f"Hare and tortoise met at the start of the cycle at index {self.tortoise_index}")
+              print()
+            
+            self.cycle_start = self.tortoise_index
+
             self.tortoise_index += 1
             tortoise = self.rocks_info[self.tortoise_index]
-          
-          loop_length = self.tortoise_index - self.cycle_start
 
-          if DEBUG_PRINT:
-            print("Loop length found!")
-            print(f"Tortoise found that the loop lenght is {loop_length}")
+            while tortoise != hare:
+              self.tortoise_index += 1
+              tortoise = self.rocks_info[self.tortoise_index]
+            
+            self.cycle_length = self.tortoise_index - self.cycle_start
 
-          self.cycle_height_info = [x - self.height_info[self.cycle_start-1] for x in self.height_info[self.cycle_start:self.tortoise_index]]
+            if DEBUG_PRINT:
+              print("Loop length found!")
+              print(f"Tortoise found that the loop lenght is {self.cycle_length}")
 
-        else:
-          self.tortoise_index += 1
-          self.hare_index += 2
-  
+            self.cycle_detection_step = CycleDetectionStep.AWAITING_SECOND_LOOP
+            
   def get_rock_tower_height_after_n_rocks(self, n_rocks: int) -> int:
     if n_rocks <= 0:
       return 0
@@ -308,27 +324,27 @@ class Chamber:
     self.reset()
 
     i = 0
-    while i < n_rocks and not self.is_cycle_detected:
+    while i < n_rocks and not self.is_cycle_detected():
       self.fall_rock()
       self.detect_cycle_step()
       i += 1
     
-    if not self.is_cycle_detected:
+    if not self.is_cycle_detected():
       return self.get_rock_tower_height()
 
     # Get simulated length so far
     height = self.get_rock_tower_height()
 
     # Get remaining height to finish current cycle
-    current_cycle_index = (i - self.cycle_start - 1) % len(self.cycle_height_info)
+    current_cycle_index = (i - self.cycle_start - 1) % self.cycle_length
     height += self.cycle_height_info[-1] - self.cycle_height_info[current_cycle_index]
-    remaining_rocks = n_rocks - i - (len(self.cycle_height_info) - current_cycle_index)
+    remaining_rocks = n_rocks - i - (self.cycle_length - current_cycle_index)
 
     # Get height from cycles
-    height += (remaining_rocks // len(self.cycle_height_info)) * self.cycle_height_info[-1]
+    height += (remaining_rocks // self.cycle_length) * self.cycle_height_info[-1]
 
     # Get height from last rocks that don't complete a cycle
-    height += self.cycle_height_info[remaining_rocks % len(self.cycle_height_info)]
+    height += self.cycle_height_info[remaining_rocks % self.cycle_length]
 
     return height
 
@@ -349,7 +365,7 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
 height = chamber.get_rock_tower_height_after_n_rocks(NUMBER_OF_ROCKS)
 
 if DEBUG_PRINT:
-  if not chamber.is_cycle_detected:
+  if not chamber.is_cycle_detected():
     print()
     print("No cycle detected!")
 
