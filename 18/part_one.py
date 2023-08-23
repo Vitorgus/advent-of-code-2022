@@ -25,13 +25,13 @@ class LavaDroplet:
     surface = 0
 
     for cube in self.cubes.keys():
-      for coord in get_neightor_coords(cube):
+      for coord in get_neightbor_coords(cube):
         if coord not in self.cubes:
           surface += 1
 
     return surface
 
-def get_neightor_coords(coord: Coord) -> list[Coord]:
+def get_neightbor_coords(coord: Coord) -> list[Coord]:
   x, y, z = coord
 
   return [
