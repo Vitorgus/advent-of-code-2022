@@ -6,7 +6,7 @@ def get_filepath(file):
 
 grid = []
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     l_split = line.strip()
     tree_row = []
@@ -25,25 +25,25 @@ def get_scenic_score(grid, tree_row, tree_column):
     north_score += 1
     if grid[north_coord][tree_column] >= tree:
       break
-  
+
   south_score = 0
   for south_coord in range(tree_row + 1, len(grid)):
     south_score += 1
     if grid[south_coord][tree_column] >= tree:
       break
-  
+
   west_score = 0
   for west_coord in range(tree_column - 1, -1, -1):
     west_score += 1
     if grid[tree_row][west_coord] >= tree:
       break
-  
+
   east_score = 0
   for east_coord in range(tree_column + 1, len(grid[tree_row])):
     east_score += 1
     if grid[tree_row][east_coord] >= tree:
       break
-  
+
   return north_score * south_score * west_score * east_score
 
 
@@ -56,4 +56,3 @@ for row in range(len(grid)):
       highest_score = current_score
 
 print(highest_score)
-

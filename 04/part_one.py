@@ -8,12 +8,12 @@ def fully_overlap(start_1, end_1, start_2, end_2):
   if start_1 <= start_2 and end_1 >= end_2:
     return True
   if start_2 <= start_1 and end_2 >= end_1:
-    return True 
+    return True
   return False
 
 full_overlap_count = 0
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     first_elf, second_elf = line.strip().split(',')
 

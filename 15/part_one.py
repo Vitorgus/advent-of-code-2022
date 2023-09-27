@@ -36,7 +36,7 @@ class Cave:
   def __init__(self):
     self._sensor_list: list[Sensor] = []
     self._beacon_list: list[Beacon] = []
-  
+
   def add_sensor(self, sensor: Sensor):
     self._sensor_list.append(sensor)
     self._beacon_list.append(sensor.closest_beacon)
@@ -60,7 +60,7 @@ class Cave:
         min_y = beacon_y
       if max_y == None or beacon_y > max_y:
         max_y = beacon_y
-      
+
     for sensor in self._sensor_list:
       sensor_x, sensor_y = sensor.coord
       distace = sensor.distance_to_closest_beacon
@@ -83,17 +83,17 @@ class Cave:
           min_y = sensor_y
         if max_y == None or sensor_y > max_y:
           max_y = sensor_y
-    
+
     min_x -= Cave.MARGIN_LEFT
     max_x += Cave.MARGIN_RIGHT
 
     if (max_x - min_x >= Cave.PRINT_TRESHOLD
         or max_y - min_y >= Cave.PRINT_TRESHOLD):
       return f'Cave too big to transform into string. Dimensions: {max_x - min_x}, {max_y - min_y}'
-    
+
     sensor_coords = [x.coord for x in self._sensor_list]
     beacon_coords = [x.coord for x in self._beacon_list]
-    
+
     for coord_y in range(min_y, max_y+1):
       for coord_x in range(min_x, max_x+1):
         coord = (coord_x, coord_y)
@@ -112,7 +112,7 @@ class Cave:
 
           result += symbol
       result += '\n'
-    
+
     return result
 
   def count_positions_can_not_have_beacon(self, target_y):
@@ -125,7 +125,7 @@ class Cave:
       if (sensor_y + distance >= target_y
           and sensor_y - distance <= target_y):
 
-        
+
         """
         Values of x found by isolation x in the Manhattan distance equation:
         |x - a| + |y - b| = d
@@ -143,10 +143,10 @@ class Cave:
         x_end = max(x_coords)
 
         positions = positions.union(range(x_start, x_end+1))
-    
+
     sensor_coords_set = {x.coord[0] for x in self._sensor_list if x.coord[1] == target_y}
     beacon_coords_set = {x.coord[0] for x in self._beacon_list if x.coord[1] == target_y}
-    
+
     positions = positions - sensor_coords_set - beacon_coords_set
 
     return len(positions)
@@ -168,7 +168,7 @@ numbers_regex = re.compile(r'[-]*\d+')
 
 cave = Cave()
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     coords = [int(x) for x in numbers_regex.findall(line.strip())]
     sensor_x, sensor_y, beacon_x, beacon_y = coords

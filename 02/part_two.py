@@ -49,10 +49,10 @@ def get_your_shape(enemy, outcome):
 
 total_score = 0
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     shapes = line.split()
-    
+
     enemy_shape = letter_to_shape[shapes[0]]
     outcome = letter_to_outcome[shapes[1]]
 

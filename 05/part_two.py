@@ -7,7 +7,7 @@ def get_filepath(file):
 
 stacks = []
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   build_stacks = True
   numbers_pattern = re.compile(r'\d+')
 
@@ -21,7 +21,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
 
       if len(stacks) == 0:
         stacks = [[] for x in range(n_stacks)]
-      
+
       for i in range(n_stacks):
         item_location = i*4 + 1
         item = line[item_location]

@@ -2,7 +2,7 @@ import os
 from enum import Enum, auto
 
 # Puzzle inputs and settings
-FILE_NAME = "input.txt"
+FILE_NAME = "example.txt"
 DEBUG_PRINT_STEP_BY_STEP = False
 DEBUG_PRINT_FINAL_CHAMBER = False
 
@@ -31,7 +31,7 @@ class Movement(Enum):
 class Rock:
   def __init__(self, positions: list[Position] = []) -> None:
     self.relative_positions = positions
-  
+
   def get_positions(self, offset: Position = (0, 0)):
     offset_x, offset_y = offset
     return [(offset_x + pos_x, offset_y + pos_y) for (pos_x, pos_y) in self.relative_positions]
@@ -60,14 +60,14 @@ class JetPatternManager:
   def __init__(self, pattern: str) -> None:
     self.pattern = pattern
     self.current_index = 0
-  
+
   def get_next_movement(self):
     movement = self.pattern[self.current_index]
     self.current_index += 1
 
     if self.current_index >= len(self.pattern):
       self.current_index -= len(self.pattern)
-    
+
     if movement == "<":
       return Movement.LEFT
     elif movement == ">":
@@ -98,22 +98,22 @@ class Chamber:
     self.movement_index = 0
 
     self.rock_positions: dict[Position, bool] = {}
-  
+
   def get_next_rock(self) -> Rock:
     rock = self.rocks[self.rock_index]
     self.rock_index += 1
 
     if self.rock_index >= len(self.rocks):
       self.rock_index -= len(self.rocks)
-    
+
     return rock
-  
+
   def get_rock_spawn_point(self) -> Position:
     return (
       ROCK_SPAWN_LEFT_OFFSET,
       self.highest_rock_height + ROCK_SPAWN_BOTTOM_OFFSET + 1
     )
-  
+
   def get_next_movement(self) -> Movement:
     movement: Movement
 
@@ -121,11 +121,11 @@ class Chamber:
       movement = self.jet_pattern_manager.get_next_movement()
     else:
       movement = Movement.DOWN
-    
+
     self.movement_index += 1
 
     return movement
-  
+
   def check_collision(self, new_position: Position) -> bool:
     positions = self.current_rock.get_positions(new_position)
 
@@ -136,9 +136,9 @@ class Chamber:
       if pos in self.rock_positions or pos_x < 0 or pos_x >= self.width or pos_y < 0:
         collide = True
         break
-    
+
     return collide
-  
+
   def print_chamber(self):
     max_current_rock_pos = max(self.current_rock.get_positions(self.current_rock_pos), key= lambda x : x[1])
     highest_coord = max(self.highest_rock_height, max_current_rock_pos[1])
@@ -155,13 +155,13 @@ class Chamber:
           print(CHAMBER_CURRENT_ROCK, end="")
         else:
           print(CHAMBER_AIR, end="")
-        
+
       print(CHAMBER_WALLS)
-    
+
     print(CHAMBER_LEFT_CORNER, end="")
     print(CHAMBER_FLOOR * self.width, end="")
     print(CHAMBER_RIGHT_CORNER)
-  
+
   def move_rock(self):
     current_pos_x, current_pos_y = self.current_rock_pos
     movement = self.get_next_movement()
@@ -189,14 +189,14 @@ class Chamber:
         new_pos = (current_pos_x - 1, current_pos_y)
       elif movement == Movement.RIGHT:
         new_pos = (current_pos_x + 1, current_pos_y)
-    
+
       if self.check_collision(new_pos):
         pass
       else:
         self.current_rock_pos = new_pos
-      
+
       self.has_rock_just_finished_falling = False
-  
+
   def get_rock_tower_height(self) -> int:
     return self.highest_rock_height + 1
 

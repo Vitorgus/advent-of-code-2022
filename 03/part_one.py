@@ -12,7 +12,7 @@ def get_priority(item):
 
 priority_sum = 0
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     middle = len(line.strip()) // 2
 
@@ -30,7 +30,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
           break
       if found:
         break
-    
+
     priority_sum += get_priority(duplicate_item)
 
 print(priority_sum)

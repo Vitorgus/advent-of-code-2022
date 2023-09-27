@@ -8,10 +8,10 @@ def get_filepath(file):
 class BaseStruct:
   def __init__(self, name):
     self.name = name
-  
+
   def get_size(self):
     pass
-  
+
   def print_content(self):
     print(self.name)
 
@@ -20,10 +20,10 @@ class FileStruct(BaseStruct):
   def __init__(self, name, size):
     super().__init__(name)
     self.size = size
-  
+
   def get_size(self):
     return self.size
-  
+
   def print_content(self, depth=0):
     print('| ' * depth, end="")
     print(f'- {self.name} (file, size={self.size})')
@@ -34,28 +34,28 @@ class DirStruct(BaseStruct):
     super().__init__(name)
     self.content = []
     self.parent_dir = parent_dir
-  
+
   def get_size(self):
     size = 0
     for child in self.content:
       size += child.get_size()
     return size
-  
+
   def print_content(self, depth=0):
     print('| ' * depth, end="")
     print(f'- {self.name} (dir)')
 
     for child in self.content:
       child.print_content(depth + 1)
-  
+
   def create_file(self, name, size):
     file = FileStruct(name, size)
     self.content.append(file)
-  
+
   def create_dir(self, name):
     dir = DirStruct(name, self)
     self.content.append(dir)
-  
+
   def get_subdir(self, name):
     for content in self.content:
       if isinstance(content, DirStruct) and content.name == name:
@@ -69,7 +69,7 @@ def get_deletable_dirs_total_size(dir, max_size):
   for child in dir.content:
     if isinstance(child, DirStruct):
       sum += get_deletable_dirs_total_size(child, max_size)
-  
+
   dir_size = dir.get_size()
   if dir_size <= max_size:
     sum += dir_size
@@ -78,7 +78,7 @@ def get_deletable_dirs_total_size(dir, max_size):
 
 root = DirStruct('/')
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   current_dir = root
 
   for line in f:

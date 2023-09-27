@@ -7,7 +7,7 @@ def get_filepath(file):
 def is_touching(head_pos, tail_pos):
   head_line, head_row = head_pos
   tail_line, tail_row = tail_pos
-  
+
   if (head_line >= tail_line - 1 and
       head_line <= tail_line + 1 and
       head_row >= tail_row - 1 and
@@ -65,7 +65,7 @@ tail_position = (0, 0)
 
 tail_visited_positions = { tail_position }
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     input = line.strip().split()
 
@@ -78,7 +78,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
       if not is_touching(new_head_position, tail_position):
         tail_position = head_position
         tail_visited_positions.add(tail_position)
-      
+
       head_position = new_head_position
 
 # visualize_visited_positions(tail_visited_positions)

@@ -6,7 +6,7 @@ def get_filepath(file):
 
 grid = []
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     l_split = line.strip()
     tree_row = []
@@ -21,7 +21,7 @@ def is_visible(grid, tree_row, tree_column):
   if (tree_row == 0 or tree_column == 0 or
       tree_row == len(grid) - 1 or tree_column == len(grid[tree_row]) - 1):
     return True
-  
+
   tree = grid[tree_row][tree_column]
 
   visible = True
@@ -31,7 +31,7 @@ def is_visible(grid, tree_row, tree_column):
       break
   if visible:
     return True
-  
+
   visible = True
   for south_coord in range(tree_row + 1, len(grid)):
     if grid[south_coord][tree_column] >= tree:
@@ -39,7 +39,7 @@ def is_visible(grid, tree_row, tree_column):
       break
   if visible:
     return True
-  
+
   visible = True
   for west_coord in range(0, tree_column):
     if grid[tree_row][west_coord] >= tree:
@@ -47,7 +47,7 @@ def is_visible(grid, tree_row, tree_column):
       break
   if visible:
     return True
-  
+
   visible = True
   for east_coord in range(tree_column + 1, len(grid[tree_row])):
     if grid[tree_row][east_coord] >= tree:
@@ -55,7 +55,7 @@ def is_visible(grid, tree_row, tree_column):
       break
   if visible:
     return True
-  
+
   return False
 
 
@@ -67,4 +67,3 @@ for row in range(len(grid)):
       visible_trees += 1
 
 print(visible_trees)
-

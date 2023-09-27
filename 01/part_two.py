@@ -7,7 +7,7 @@ def get_filepath(file):
 top_three = [0, 0, 0]
 current_cal = 0
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     l_strip = line.strip()
 

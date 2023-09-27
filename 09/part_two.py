@@ -7,7 +7,7 @@ def get_filepath(file):
 def is_touching(head_pos, tail_pos):
   head_line, head_row = head_pos
   tail_line, tail_row = tail_pos
-  
+
   if (head_line >= tail_line - 1 and
       head_line <= tail_line + 1 and
       head_row >= tail_row - 1 and
@@ -33,7 +33,7 @@ def calculate_position(prev_knot, current_knot):
       if min_distance == None or distance < min_distance:
         new_position = (i, j)
         min_distance = distance
-  
+
   return new_position
 
 def move(knots_pos, dir):
@@ -62,7 +62,7 @@ def move(knots_pos, dir):
       knots_new_pos.append(new_pos)
     else:
       knots_new_pos.append(knots_pos[i])
-  
+
   return knots_new_pos
 
 def visualize_visited_positions(positions, line_size=None, row_size=None):
@@ -98,7 +98,7 @@ knots_position = [(0, 0) for x in range(KNOTS_NUMBER)]
 
 tail_visited_positions = { knots_position[-1] }
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     input = line.strip().split()
 
@@ -109,7 +109,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
       knots_position = move(knots_position, direction)
 
       tail_visited_positions.add(knots_position[-1])
-      
+
 # visualize_visited_positions(tail_visited_positions)
 # print()
 print(len(tail_visited_positions))

@@ -1,5 +1,5 @@
 import os
-from functools import cmp_to_key 
+from functools import cmp_to_key
 
 def get_filepath(file):
   absolute_path = os.path.dirname(__file__)
@@ -39,7 +39,7 @@ def parse_packet(packet: str):
           element = ''
       else:
         element += char
-    
+
     return parsed_packet
 
 def compare_packets(left, right, print_debug=False, depth=0):
@@ -66,7 +66,7 @@ def compare_packets(left, right, print_debug=False, depth=0):
 
       if result != 0:
         return result
-    
+
     if len(left) < len(right):
       if print_debug:
         print('  ' * (depth+1), end='')
@@ -93,7 +93,7 @@ def compare_packets(left, right, print_debug=False, depth=0):
       if print_debug:
         print('  ' * (depth+1), end='')
         print(f'- Mixed types; convert right to {right_array} and retry comparison')
-    
+
     return compare_packets(left_array, right_array, print_debug, depth+1)
 
 DIVIDER_PACKETS = [[[2]], [[6]]]
@@ -103,8 +103,8 @@ PRINT_ORDERED_PACKETS_DEBUG = False
 
 packets = DIVIDER_PACKETS.copy()
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
-  
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
+
   for line in f:
     l_strip = line.strip()
 

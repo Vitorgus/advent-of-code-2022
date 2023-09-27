@@ -38,7 +38,7 @@ def parse_packet(packet: str):
           element = ''
       else:
         element += char
-    
+
     return parsed_packet
 
 def compare_packets(left, right, print_debug=False, depth=0):
@@ -65,7 +65,7 @@ def compare_packets(left, right, print_debug=False, depth=0):
 
       if result != None:
         return result
-    
+
     if len(left) < len(right):
       if print_debug:
         print('  ' * (depth+1), end='')
@@ -92,12 +92,12 @@ def compare_packets(left, right, print_debug=False, depth=0):
       if print_debug:
         print('  ' * (depth+1), end='')
         print(f'- Mixed types; convert right to {right_array} and retry comparison')
-    
+
     return compare_packets(left_array, right_array, print_debug, depth+1)
 
 PRINT_DEBUG = False
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   left = None
   right = None
   index = 1
@@ -114,7 +114,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
 
     if PRINT_DEBUG:
       print()
-  
+
   for line in f:
     l_strip = line.strip()
 
@@ -129,7 +129,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
       left = None
       right = None
       index += 1
-  
+
   compare(left, right)
 
   if PRINT_DEBUG:

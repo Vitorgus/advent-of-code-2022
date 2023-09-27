@@ -139,7 +139,7 @@ def get_next_positions(grid, pos):
   if can_go_right(grid, pos):
     next_step = go_right(pos)
     next_positions.append(next_step)
-  
+
   return next_positions
 
 def get_euclidean_distance(pos_1, pos_2):
@@ -167,7 +167,7 @@ def get_min_path(grid, start_pos, end_pos):
 
 
   f_value = lambda x: distance_to_target[x] + min_distance_to_position[x]
-  
+
   # Main loop, while you have positions to explore
   while len (positions_to_explore) > 0:
     current_pos = min(positions_to_explore, key=f_value)
@@ -188,7 +188,7 @@ def get_min_path(grid, start_pos, end_pos):
 
     # Check which directions you can go from here
     next_positions = get_next_positions(grid, current_pos)
-    
+
     for next_pos in next_positions:
       if next_pos in positions_explored:
         # If position already explored, skip
@@ -212,7 +212,7 @@ def get_min_path(grid, start_pos, end_pos):
           # If current path to position is less than previous path, update it
           min_distance_to_position[next_pos] = current_min_distance
           previous_position[next_pos] = current_pos
-  
+
   # No path found
   return None
 
@@ -224,7 +224,7 @@ grid = []
 start_position = None
 end_position = None
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     line = list(line.strip())
 
@@ -258,7 +258,7 @@ else:
     debug_min_path = [start_position] + min_path
     for i in range(len(debug_min_path) - 1):
       line, column = debug_min_path[i]
-      
+
       if is_going_up(debug_min_path[i], debug_min_path[i+1]):
         path_grid[line][column] = '^'
       elif is_going_down(debug_min_path[i], debug_min_path[i+1]):
@@ -275,7 +275,7 @@ else:
       for square in line:
         print(square, end='')
       print()
-    
+
     print()
     print(f'Minumin number of steps = {min_steps_number}')
   else:

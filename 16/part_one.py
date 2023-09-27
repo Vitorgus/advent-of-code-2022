@@ -12,63 +12,63 @@ class Valve:
     self.flow = flow
     self.connections: list[str] = []
     self.is_open = False
-  
+
   def add_connection(self, name):
     self.connections.append(name)
-  
+
   def has_connection(self, name):
     return name in self.connections
-  
+
   def open(self):
     self.is_open = True
-  
+
   def close(self):
     self.is_open = False
-  
+
   def __str__(self) -> str:
     return self.name
 
 class Cave:
   def __init__(self) -> None:
     self.valves: list[Valve] = []
-  
+
   def add_valve(self, name, flow):
     valve = Valve(name, flow)
     self.valves.append(valve)
-  
+
   def get_valve(self, name):
     for valve in self.valves:
       if valve.name == name:
         return valve
-    
+
     return None
-  
+
   def add_connection(self, name_from, name_to):
     valve = self.get_valve(name_from)
 
     if valve != None:
       valve.add_connection(name_to)
-  
+
   def get_open_valves(self):
     return [valve for valve in self.valves if valve.is_open]
-  
+
   def has_closed_working_valves(self):
     for valve in self.valves:
       if valve.flow > 0 and not valve.is_open:
         return True
-    
+
     return False
-  
+
   def get_closed_working_valves(self):
     return {x for x in self.valves if x.flow > 0 and not x.is_open}
-  
+
   def get_current_pressure(self):
     valves = self.get_open_valves()
     pressure = 0
 
     for valve in valves:
       pressure += valve.flow
-    
+
     return pressure
 
 def get_min_paths(cave: Cave, start_valve_name: str):
@@ -97,7 +97,7 @@ def get_min_paths(cave: Cave, start_valve_name: str):
       else:
         valves_to_explore.append(next_valve_name)
         min_paths[next_valve_name] = current_path
-  
+
   return min_paths
 
 def get_all_min_paths(cave: Cave):
@@ -107,7 +107,7 @@ def get_all_min_paths(cave: Cave):
   for valve in cave.valves:
     valve_name = valve.name
     all_min_paths[valve_name] = get_min_paths(cave, valve_name)
-  
+
   return all_min_paths
 
 DEBUG_PRINT = False
@@ -119,7 +119,7 @@ TOTAL_TIME = 30
 
 cave = Cave()
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     part_1, part_2 = [s.strip() for s in line.split(';')]
 
@@ -134,7 +134,7 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
       valve_connections = part_2.removeprefix('tunnels lead to valves ').split(', ')
     else:
       valve_connections = part_2.removeprefix('tunnel leads to valve ').split(', ')
-    
+
     for connection in valve_connections:
       cave.add_connection(valve_name, connection)
 
@@ -194,7 +194,7 @@ def get_max_pressure(cave: Cave, current_valve: Valve, time_limit: int) -> tuple
       cache_valves.add(target_valve)
 
       max_pressure += target_valve.flow * remaining_time
-    
+
     if cave.has_closed_working_valves():
       next_max_pressure, next_max_steps = get_max_pressure(cave, target_valve, remaining_time)
       max_pressure += next_max_pressure
@@ -204,9 +204,9 @@ def get_max_pressure(cave: Cave, current_valve: Valve, time_limit: int) -> tuple
 
     for valve in cache_valves:
       valve.close()
-    
+
     return (max_pressure, steps)
-  
+
   for next_valve in possible_valves:
     next_valve.open()
 
@@ -220,13 +220,13 @@ def get_max_pressure(cave: Cave, current_valve: Valve, time_limit: int) -> tuple
     if pressure > max_pressure:
       max_pressure = pressure
       steps = [min_path[next_valve.name]] + next_max_steps
-    
+
     next_valve.close()
-  
+
 
   if len(cache_steps) == 0:
     set_cache(current_valve, possible_valves, steps)
-  
+
   return (max_pressure, steps)
 
 start_valve = cave.get_valve(VALVE_START)
@@ -252,7 +252,7 @@ if DEBUG_PRINT:
         valves_string += f'{valve}, '
       valves_string += f'{open_valves[-2]} and {open_valves[-1]}'
       print(f'Valves {valves_string} are open, releasing {current_pressure} pressure.')
-    
+
     if len(current_step) > 0:
       current_valve = current_step.pop(0)
       print(f'You move to valve {current_valve}')
@@ -264,9 +264,9 @@ if DEBUG_PRINT:
         target_valve = current_step[-1]
       else:
         target_valve = None
-    
+
     print()
-  
+
   print(f'Maximum pressure: {pressure}')
 else:
   print(pressure)

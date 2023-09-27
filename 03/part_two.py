@@ -15,7 +15,7 @@ GROUP_SIZE = 3
 elf_group = []
 priority_sum = 0
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     elf_group.append(line.strip())
 
@@ -27,11 +27,11 @@ with open(get_filepath("input.txt"), encoding="utf-8") as f:
           if not item in elf:
             all_elves_have_item = False
             break
-        
+
         if all_elves_have_item:
           priority_sum += get_priority(item)
           break
-      
+
       elf_group = []
 
 print(priority_sum)

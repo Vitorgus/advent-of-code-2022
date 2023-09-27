@@ -3,7 +3,7 @@ import os
 class BaseCommand:
   def __init__(self, duration):
     self.duration = duration
-  
+
   def has_finished(self):
     return self.duration == 0
 
@@ -14,7 +14,7 @@ class BaseCommand:
 class NoopCommand(BaseCommand):
   def __init__(self):
     super().__init__(1)
-  
+
   def __str__(self):
     return 'noop'
 
@@ -22,7 +22,7 @@ class AddxCommand(BaseCommand):
   def __init__(self, value):
     super().__init__(2)
     self.value = value
-  
+
   def __str__(self) -> str:
     return f'addx {self.value}'
 
@@ -33,7 +33,7 @@ def get_filepath(file):
 
 commands_list = []
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     command = line.strip()
 
@@ -67,7 +67,7 @@ while len(commands_list) != 0:
   if current_command.has_finished():
     if isinstance(current_command, AddxCommand):
       x += current_command.value
-    
+
     commands_list.pop(0)
 
 print(signal_strengh_sum)

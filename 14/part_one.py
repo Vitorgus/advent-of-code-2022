@@ -31,9 +31,9 @@ class Cave:
           max_x = coord_x
         if max_y == None or coord_y > max_y:
           max_y = coord_y
-    
+
     offset = max_x - min_x
-    
+
     self._min_x = min_x
     self._max_x = max_x
     self._max_y = max_y
@@ -48,37 +48,37 @@ class Cave:
     for path in self._rock_paths:
       for i in range(len(path) - 1):
         self._set_path(path[i], path[i+1])
-    
+
     self._set_space(Cave.SAND_SOURCE_COORD, Cave.SAND_SOURCE_SYMBOL)
-  
+
   def fall_sand(self):
     sand_coord = Cave.SAND_SOURCE_COORD
     self._last_sand_path = []
 
     while True:
       next_coord = self._next_sand_coord(sand_coord)
-      
+
       if next_coord == None:
         return False
-      
+
       if next_coord == sand_coord:
         self._set_space(sand_coord, Cave.SAND_SYMBOL)
         return True
-      
+
       self._last_sand_path.append(next_coord)
       sand_coord = next_coord
 
   def _next_sand_coord(self, current_coord):
     current_x, current_y = current_coord
-    
+
     next_y = current_y + 1
     if next_y >= len(self._coords):
       return None
-    
+
     next_space = (current_x, next_y)
     if self._get_space(next_space) == Cave.AIR_SYMBOL:
       return next_space
-    
+
     next_space = (current_x-1, next_y)
     if self._get_space(next_space) == Cave.AIR_SYMBOL:
       return next_space
@@ -86,7 +86,7 @@ class Cave:
     next_space = (current_x+1, next_y)
     if self._get_space(next_space) == Cave.AIR_SYMBOL:
       return next_space
-    
+
     return current_coord
 
   def _set_path(self, start, end):
@@ -103,7 +103,7 @@ class Cave:
         self._set_space((coord_x, i), Cave.ROCK_SYMBOL)
     elif start_y == end_y:
       coord_y = start_y
-      
+
       range_start = min(start_x, end_x)
       range_end = max(start_x, end_x)
 
@@ -116,19 +116,19 @@ class Cave:
     coord_x, coord_y = coord
 
     return (coord_x - self._min_x + Cave.MARGIN_LEFT, coord_y)
-  
+
   def _set_space(self, coord, tile):
     coord_x, coord_y = self._translate_coords(coord)
     self._coords[coord_y][coord_x] = tile
-  
+
   def _get_space(self, coord):
     coord_x, coord_y = self._translate_coords(coord)
     return self._coords[coord_y][coord_x]
-    
+
   def get_cave_string(self, last_sand_path=False):
     result = ''
     sand_path = [self._translate_coords(coord) for coord in self._last_sand_path]
-    
+
     for line in range(len(self._coords)):
       for column in range(len(self._coords[line])):
         if last_sand_path and (column, line) in sand_path:
@@ -136,9 +136,9 @@ class Cave:
         else:
           result += self._coords[line][column]
       result += '\n'
-    
+
     return result
-  
+
   def __str__(self) -> str:
     return self.get_cave_string()
 
@@ -149,7 +149,7 @@ def get_filepath(file):
 
 paths = []
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     coordinates = line.strip().split(' -> ')
 

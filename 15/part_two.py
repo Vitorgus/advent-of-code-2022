@@ -38,11 +38,11 @@ class Area:
   def __init__(self, start_coord, end_coord) -> None:
     self.start = start_coord
     self.end = end_coord
-  
+
   def get_boundary_points(self):
     if self.is_a_point():
       return [self.start]
-    
+
     start_x, start_y = self.start
     end_x, end_y = self.end
 
@@ -52,10 +52,10 @@ class Area:
       (start_x, end_y),
       self.end
     ]
-  
+
   def is_a_point(self):
     return self.start == self.end
-  
+
   def get_quadrants(self):
     start_x, start_y = self.start
     end_x, end_y = self.end
@@ -93,7 +93,7 @@ class Area:
     else:
       # Point, cannot be divided
       return []
-  
+
   def __str__(self) -> str:
     if self.is_a_point():
       return f'Point {self.start}'
@@ -115,7 +115,7 @@ class Cave:
   def __init__(self):
     self._sensor_list: list[Sensor] = []
     self._beacon_list: list[Beacon] = []
-  
+
   def add_sensor(self, sensor: Sensor):
     self._sensor_list.append(sensor)
     self._beacon_list.append(sensor.closest_beacon)
@@ -149,7 +149,7 @@ class Cave:
           min_y = beacon_y
         if max_y == None or beacon_y > max_y:
           max_y = beacon_y
-        
+
       for sensor in self._sensor_list:
         sensor_x, sensor_y = sensor.coord
         distace = sensor.distance_to_closest_beacon
@@ -172,17 +172,17 @@ class Cave:
             min_y = sensor_y
           if max_y == None or sensor_y > max_y:
             max_y = sensor_y
-    
+
     min_x -= Cave.MARGIN_LEFT
     max_x += Cave.MARGIN_RIGHT
 
     if (max_x - min_x >= Cave.PRINT_TRESHOLD
         or max_y - min_y >= Cave.PRINT_TRESHOLD):
       return f'Cave too big to transform into string. Dimensions: {max_x - min_x}, {max_y - min_y}'
-    
+
     sensor_coords = [x.coord for x in self._sensor_list]
     beacon_coords = [x.coord for x in self._beacon_list]
-    
+
     for coord_y in range(min_y, max_y+1):
       for coord_x in range(min_x, max_x+1):
         coord = (coord_x, coord_y)
@@ -204,7 +204,7 @@ class Cave:
           else:
             result += Cave.FREE_SPACE_SYMBOL
       result += '\n'
-    
+
     return result
 
   def find_missing_beacon(self, area: Area):
@@ -214,7 +214,7 @@ class Cave:
     If it does: discard that area
     If not: subdivide that area, and do the same process to the divisions
     """
-    
+
     search_areas = deque([area])
 
     while len(search_areas) > 0:
@@ -231,11 +231,11 @@ class Cave:
             touches_a_sensor = True
           else:
             is_inside_this_sensor = False
-        
+
         if is_inside_this_sensor:
           is_inside_a_sensor = True
           break
-      
+
       if is_inside_a_sensor:
         # Discards the area
         pass
@@ -247,8 +247,8 @@ class Cave:
         # Area does not touch any sensor, might be the beacon
         if current_area.is_a_point():
           return current_area.start
-          
-    
+
+
     return None
 
   def __str__(self) -> str:
@@ -269,7 +269,7 @@ numbers_regex = re.compile(r'[-]*\d+')
 
 cave = Cave()
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     coords = [int(x) for x in numbers_regex.findall(line.strip())]
     sensor_x, sensor_y, beacon_x, beacon_y = coords

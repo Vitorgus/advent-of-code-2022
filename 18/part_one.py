@@ -1,7 +1,7 @@
 import os
 
 # Puzzle inputs and settings
-FILE_NAME = "input.txt"
+FILE_NAME = "example.txt"
 DEBUG_PRINT = False
 
 # Helper funcions and classes

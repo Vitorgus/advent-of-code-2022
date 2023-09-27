@@ -11,10 +11,10 @@ class Monkey:
     self.test_false_destination = -1
     self.inspect_count = 0
     self.dampener = 0
-  
+
   def add_item(self, item) -> None:
     self.items.append(item)
-  
+
   def execute_operation(self, item, debug=False):
     if '+' in self.operation:
       # Add operation
@@ -32,7 +32,7 @@ class Monkey:
           print(f'by {second_term}', end=' ')
 
       result = first_term + second_term
-      
+
       if debug:
         print(f'to {result}', )
 
@@ -58,7 +58,7 @@ class Monkey:
         print(f'to {result}', )
 
       return result
-  
+
   def damp_number(self, item, debug=False):
     if self.dampener > 0 and item > dampener:
       dampened_item = item % self.dampener
@@ -81,16 +81,16 @@ class Monkey:
         print(f'    Current worry level is divisible by {self.test_number}')
 
       return self.test_false_destination
-  
+
   def inspect_and_trow_item(self,  debug=False):
     if len(self.items) == 0:
       return
-    
+
     item = self.items.pop(0)
     self.inspect_count += 1
     if debug:
       print(f'  Monkey {self.id} inspects an item with worry level {item}')
-    
+
     item = self.execute_operation(item, debug)
     item = self.damp_number(item, debug)
 
@@ -105,7 +105,7 @@ def get_monkey(monkey_list, monkey_id):
   for monkey in monkey_list:
     if monkey.id == monkey_id:
       return monkey
-  
+
   return None
 
 def get_filepath(file):
@@ -115,7 +115,7 @@ def get_filepath(file):
 monkey_list = []
 current_monkey = None
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   for line in f:
     l_strip = line.strip()
 
@@ -189,7 +189,7 @@ for round in range(1, NUMBER_ROUNDS+1):
 
   if debug_step_by_step:
     print(f'--- Round {round} ---')
-  
+
   for monkey in monkey_list:
     if debug_step_by_step:
       print(f'Monkey {monkey.id}:')

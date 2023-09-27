@@ -2,7 +2,7 @@ import os
 from enum import Enum, auto
 
 # Puzzle inputs and settings
-FILE_NAME = "input.txt"
+FILE_NAME = "example.txt"
 DEBUG_PRINT = False
 
 CHAMBER_WIDTH = 7
@@ -43,7 +43,7 @@ class Rock:
   def __init__(self, positions: list[Position] = [], name: str = "") -> None:
     self.relative_positions = positions
     self.name = name
-  
+
   def get_positions(self, offset: Position = (0, 0)):
     offset_x, offset_y = offset
     return [(offset_x + pos_x, offset_y + pos_y) for (pos_x, pos_y) in self.relative_positions]
@@ -77,21 +77,21 @@ class JetPatternManager:
   def __init__(self, pattern: str) -> None:
     self.pattern = pattern
     self.current_index = 0
-  
+
   def get_next_movement(self):
     movement = self.pattern[self.current_index]
     self.current_index += 1
 
     if self.current_index >= len(self.pattern):
       self.current_index -= len(self.pattern)
-    
+
     if movement == "<":
       return Movement.LEFT
     elif movement == ">":
       return Movement.RIGHT
     else:
       raise Exception("Unknown movement")
-  
+
   def reset(self):
     self.current_index = 0
 
@@ -114,7 +114,7 @@ class Chamber:
     ]
 
     self.reset()
-  
+
   def reset(self):
     self.jet_pattern_manager.reset()
 
@@ -138,22 +138,22 @@ class Chamber:
     self.cycle_height_info: list[int] = []
     self.cycle_start = 0
     self.cycle_length = 0
-  
+
   def get_next_rock(self) -> Rock:
     rock = self.rocks[self.rock_index]
     self.rock_index += 1
 
     if self.rock_index >= len(self.rocks):
       self.rock_index -= len(self.rocks)
-    
+
     return rock
-  
+
   def get_rock_spawn_point(self) -> Position:
     return (
       ROCK_SPAWN_LEFT_OFFSET,
       self.highest_rock_height + ROCK_SPAWN_BOTTOM_OFFSET + 1
     )
-  
+
   def get_next_movement(self) -> Movement:
     movement: Movement
 
@@ -161,11 +161,11 @@ class Chamber:
       movement = self.jet_pattern_manager.get_next_movement()
     else:
       movement = Movement.DOWN
-    
+
     self.movement_index += 1
 
     return movement
-  
+
   def check_collision(self, new_position: Position) -> bool:
     positions = self.current_rock.get_positions(new_position)
 
@@ -176,9 +176,9 @@ class Chamber:
       if pos in self.rock_positions or pos_x < 0 or pos_x >= self.width or pos_y < 0:
         collide = True
         break
-    
+
     return collide
-  
+
   def get_rock_tower_height(self) -> int:
     return self.highest_rock_height + 1
 
@@ -201,13 +201,13 @@ class Chamber:
           print(CHAMBER_CURRENT_ROCK, end="")
         else:
           print(CHAMBER_AIR, end="")
-        
+
       print(CHAMBER_WALLS)
-    
+
     print(CHAMBER_LEFT_CORNER, end="")
     print(CHAMBER_FLOOR * self.width, end="")
     print(CHAMBER_RIGHT_CORNER)
-  
+
   def fall_rock(self):
     self.previous_rock_pos = self.current_rock_pos
 
@@ -238,12 +238,12 @@ class Chamber:
           new_pos = (current_pos_x - 1, current_pos_y)
         elif movement == Movement.RIGHT:
           new_pos = (current_pos_x + 1, current_pos_y)
-      
+
         if self.check_collision(new_pos):
           pass
         else:
           self.current_rock_pos = new_pos
-  
+
   def detect_cycle_step(self):
     if self.cycle_detection_step == CycleDetectionStep.FINISHED:
       return
@@ -294,12 +294,12 @@ class Chamber:
 
               tortoise = self.rocks_info[self.tortoise_index]
               hare = self.rocks_info[self.hare_index]
-            
+
             if DEBUG_PRINT:
               print("Start of cycle found!")
               print(f"Hare and tortoise met at the start of the cycle at index {self.tortoise_index}")
               print()
-            
+
             self.cycle_start = self.tortoise_index
 
             self.tortoise_index += 1
@@ -308,7 +308,7 @@ class Chamber:
             while tortoise != hare:
               self.tortoise_index += 1
               tortoise = self.rocks_info[self.tortoise_index]
-            
+
             self.cycle_length = self.tortoise_index - self.cycle_start
 
             if DEBUG_PRINT:
@@ -316,11 +316,11 @@ class Chamber:
               print(f"Tortoise found that the loop lenght is {self.cycle_length}")
 
             self.cycle_detection_step = CycleDetectionStep.AWAITING_SECOND_LOOP
-            
+
   def get_rock_tower_height_after_n_rocks(self, n_rocks: int) -> int:
     if n_rocks <= 0:
       return 0
-    
+
     self.reset()
 
     i = 0
@@ -328,7 +328,7 @@ class Chamber:
       self.fall_rock()
       self.detect_cycle_step()
       i += 1
-    
+
     if not self.is_cycle_detected():
       return self.get_rock_tower_height()
 

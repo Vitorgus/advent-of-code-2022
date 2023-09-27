@@ -8,10 +8,10 @@ def get_filepath(file):
 class BaseStruct:
   def __init__(self, name):
     self.name = name
-  
+
   def get_size(self):
     pass
-  
+
   def print_content(self):
     print(self.name)
 
@@ -20,10 +20,10 @@ class FileStruct(BaseStruct):
   def __init__(self, name, size):
     super().__init__(name)
     self.size = size
-  
+
   def get_size(self):
     return self.size
-  
+
   def print_content(self, depth=0):
     print('| ' * depth, end="")
     print(f'- {self.name} (file, size={self.size})')
@@ -34,28 +34,28 @@ class DirStruct(BaseStruct):
     super().__init__(name)
     self.content = []
     self.parent_dir = parent_dir
-  
+
   def get_size(self):
     size = 0
     for child in self.content:
       size += child.get_size()
     return size
-  
+
   def print_content(self, depth=0):
     print('| ' * depth, end="")
     print(f'- {self.name} (dir)')
 
     for child in self.content:
       child.print_content(depth + 1)
-  
+
   def create_file(self, name, size):
     file = FileStruct(name, size)
     self.content.append(file)
-  
+
   def create_dir(self, name):
     dir = DirStruct(name, self)
     self.content.append(dir)
-  
+
   def get_subdir(self, name):
     for content in self.content:
       if isinstance(content, DirStruct) and content.name == name:
@@ -76,7 +76,7 @@ def get_min_deletable_dir(current_dir, space_needed):
         if dir_size > space_needed:
           if deletable_dir == None or dir_size < deletable_dir.get_size():
             deletable_dir = dir
-  
+
   current_dir_size = current_dir.get_size()
 
   if current_dir_size > space_needed:
@@ -87,7 +87,7 @@ def get_min_deletable_dir(current_dir, space_needed):
 
 root = DirStruct('/')
 
-with open(get_filepath("input.txt"), encoding="utf-8") as f:
+with open(get_filepath("example.txt"), encoding="utf-8") as f:
   current_dir = root
 
   for line in f:
@@ -137,8 +137,8 @@ unused_space = TOTAL_DISKSPACE - root.get_size()
 if unused_space > UPDATE_SIZE:
   print('No file deletion needed!')
 else:
-  needed_space = UPDATE_SIZE - unused_space 
+  needed_space = UPDATE_SIZE - unused_space
   print(f'Space needed to delete: {needed_space}')
-  
+
   file = get_min_deletable_dir(root, needed_space)
   print(f'File to delete: {file.name} (size={file.get_size()})')
