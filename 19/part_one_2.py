@@ -51,14 +51,17 @@ class Blueprint:
 
 
 class State:
-  def __init__(self, blueprint: Blueprint) -> None:
+  def __init__(self, blueprint: Blueprint, debug: bool = False) -> None:
     self.blueprint = blueprint
+    self.debug = debug
+
     self.elapsed_time = 0
     self.resources: tuple[int, int, int, int] = (0, 0, 0, 0)
     self.robots: tuple[int, int, int, int] = (0, 0, 0, 0)
+    self.current_building_robot: ResourceType | None = None
 
-  def can_build_robot(self, robot_type: ResourceType) -> bool:
-    costs = self.blueprint.robot_costs[robot_type]
+  def _can_build_robot(self, type: ResourceType) -> bool:
+    costs = self.blueprint.robot_costs[type]
 
     for resource_index in range(len(costs)):
       if self.resources[resource_index] < costs[resource_index]:
@@ -66,11 +69,67 @@ class State:
 
     return True
 
-# - começar a construir robô
-# - collect items
-# - finalizar a construir robô
-# - checar se dá pra construir robô
+  def _start_building_robot(self, type: ResourceType) -> None:
+    if self.current_building_robot != None:
+      print(f'ERROR: already building robot of type {self.current_building_robot}. Robot will be ovewritten')
+    self.current_building_robot = type
 
+    costs = self.blueprint.robot_costs[type]
+    self.resources = subtract_resources(self.resources, costs)
+
+    if self.debug:
+      print(f'Spend {resource_to_string(costs)} to start building a {get_robot_type_string(type)} robot.')
+
+  def _finish_building_robot(self) -> None:
+    if self.current_building_robot == None:
+      print(f'ERROR: No robot currently being built')
+      return
+
+    self.robots = add_resources(self.robots, get_resource_unit_tuple(self.current_building_robot))
+
+    if self.debug:
+      print(f'The new {get_robot_type_string(self.current_building_robot)} robot is ready; you now have {1} of them.')
+
+    self.current_building_robot = None
+
+  def elapse_time(self) -> None:
+    pass
+
+
+
+# - collect items
+def get_robot_type_string(type: ResourceType) -> str:
+    adj = 'cracking' if type == ResourceType.GEODE else 'collecting'
+    return f'{type}-{adj}'
+
+def add_resources(res1: tuple[int, int, int, int], res2: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+  return (
+    res1[0] + res2[0],
+    res1[1] + res2[1],
+    res1[2] + res2[2],
+    res1[3] + res2[3],
+  )
+
+def subtract_resources(res1: tuple[int, int, int, int], res2: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+  return (
+    res1[0] - res2[0],
+    res1[1] - res2[1],
+    res1[2] - res2[2],
+    res1[3] - res2[3],
+  )
+
+def get_resource_unit_tuple(type: ResourceType) -> tuple[int, int, int, int]:
+  match type:
+    case ResourceType.ORE:
+      return (1, 0, 0, 0)
+    case ResourceType.CLAY:
+      return (0, 1, 0, 0)
+    case ResourceType.OBSIDIAN:
+      return (0, 0 ,1, 0)
+    case ResourceType.GEODE:
+      return (0, 0, 0, 1)
+    case _:
+      return (0, 0, 0, 0)
 
 def resource_to_string(resources: tuple[int, int, int, int]) -> str:
   (ore, clay, obsidian, geode) = resources
@@ -103,10 +162,15 @@ def get_filepath(file):
 STRING_PATTERN = re.compile('Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.')
 
 def get_blueprint_data(line):
-  raw_data = STRING_PATTERN.fullmatch(line).groups()
-  mapped_data = map(lambda x : int(x), raw_data)
-  converted_data = tuple(mapped_data)
-  return converted_data
+  match = STRING_PATTERN.fullmatch(line)
+
+  if match != None:
+    raw_data = match.groups()
+    mapped_data = map(lambda x : int(x), raw_data)
+    converted_data = tuple(mapped_data)
+    return converted_data
+
+  return ()
 
 quality_sum = 0
 
@@ -118,7 +182,7 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
       data = get_blueprint_data(l_strip)
       new_blueprint = Blueprint(*data)
       new_blueprint.print_info()
-      state = State(new_blueprint)
+      state = State(new_blueprint, DEBUG_PRINT)
       # quality_sum += new_blueprint.get_quality_level()
       # print(f'Quality Level: {new_blueprint.get_quality_level(DEBUG_PRINT)}')
       print()
