@@ -15,7 +15,7 @@ start_time = time.time()
 # Puzzle inputs and settings
 FILE_NAME = "example.txt"
 DEBUG_PRINT = True
-TIME_LIMIT = 24
+TIME_LIMIT = 13
 
 
 class ResourceType(Enum):
@@ -49,18 +49,50 @@ class Blueprint:
     for key in self.robot_costs:
       print(f'\t{key.value} robot costs: {resource_to_string(self.robot_costs[key])}')
 
+    print()
+
 
 class State:
   def __init__(self, blueprint: Blueprint, debug: bool = False) -> None:
     self.blueprint = blueprint
     self.debug = debug
 
-    self.elapsed_time = 0
+    self.time = 0
     self.resources: tuple[int, int, int, int] = (0, 0, 0, 0)
-    self.robots: tuple[int, int, int, int] = (0, 0, 0, 0)
+    self.robots: tuple[int, int, int, int] = (1, 0, 0, 0)
     self.current_building_robot: ResourceType | None = None
+    self.log = ''
 
-  def _can_build_robot(self, type: ResourceType) -> bool:
+  def get_geodes(self) -> int:
+    return self.get_resources(ResourceType.GEODE)
+
+  def get_robots(self, type: ResourceType) -> int:
+    match type:
+      case ResourceType.ORE:
+        return self.robots[0]
+      case ResourceType.CLAY:
+        return self.robots[1]
+      case ResourceType.OBSIDIAN:
+        return self.robots[2]
+      case ResourceType.GEODE:
+        return self.robots[3]
+      case _:
+        return 0
+
+  def get_resources(self, type: ResourceType) -> int:
+    match type:
+      case ResourceType.ORE:
+        return self.resources[0]
+      case ResourceType.CLAY:
+        return self.resources[1]
+      case ResourceType.OBSIDIAN:
+        return self.resources[2]
+      case ResourceType.GEODE:
+        return self.resources[3]
+      case _:
+        return 0
+
+  def can_build_robot(self, type: ResourceType) -> bool:
     costs = self.blueprint.robot_costs[type]
 
     for resource_index in range(len(costs)):
@@ -69,38 +101,133 @@ class State:
 
     return True
 
-  def _start_building_robot(self, type: ResourceType) -> None:
+  def start_building_robot(self, type: ResourceType) -> None:
+    # ALERT: estou assumindo que só é possível fazer um único robô por vez
     if self.current_building_robot != None:
-      print(f'ERROR: already building robot of type {self.current_building_robot}. Robot will be ovewritten')
+      self.log += f'ERROR: already building robot of type {self.current_building_robot.value}. Robot will be ovewritten.\n'
     self.current_building_robot = type
 
     costs = self.blueprint.robot_costs[type]
     self.resources = subtract_resources(self.resources, costs)
 
     if self.debug:
-      print(f'Spend {resource_to_string(costs)} to start building a {get_robot_type_string(type)} robot.')
+      self.log += f'Spend {resource_to_string(costs)} to start building a {get_robot_type_string(type)} robot.\n'
 
-  def _finish_building_robot(self) -> None:
+  def finish_building_robot(self) -> None:
+    # ALERT: estou assumindo que só é possível fazer um único robô por vez
     if self.current_building_robot == None:
-      print(f'ERROR: No robot currently being built')
       return
 
     self.robots = add_resources(self.robots, get_resource_unit_tuple(self.current_building_robot))
 
     if self.debug:
-      print(f'The new {get_robot_type_string(self.current_building_robot)} robot is ready; you now have {1} of them.')
+      self.log += f'The new {get_robot_type_string(self.current_building_robot)} robot is ready; you now have {self.get_robots(self.current_building_robot)} of them.\n'
 
     self.current_building_robot = None
 
   def elapse_time(self) -> None:
-    pass
+    self.time += 1
+
+    if self.debug:
+      if self.time > 1:
+        self.log += '\n'
+
+      self.log += f'== Minute {self.time} ==\n'
+
+  def execute_robots_functions(self) -> None:
+    self.resources = add_resources(self.resources, self.robots)
+
+    if self.debug:
+      for resource in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN, ResourceType.GEODE]:
+        robots_number = self.get_robots(resource)
+
+        if robots_number > 0:
+          action = 'crack' if resource == ResourceType.GEODE else 'collect'
+          action += 's' if robots_number > 1 else ''
+
+          current_resource_number = self.get_resources(resource)
+          final_resource_str = f'open {resource.value}' if resource == ResourceType.GEODE else f'{resource.value}'
+
+          self.log += f'{robots_number} {resource.value}-{action}ing robot {action} {robots_number} {resource.value}; you now have {current_resource_number} {final_resource_str}.\n'
 
 
+# Main function
+def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
+  max_geodes_state = State(blueprint, DEBUG_PRINT)
+  current_time = 0
+  was_geode_robot_built = False
+  number_of_geode_robots = 0
 
-# - collect items
+  states_array = deque[State]()
+  states_array.append(State(blueprint, DEBUG_PRINT))
+
+
+  # começar while loop de enquanto ainda tem estado na fila
+  while len(states_array) > 0:
+    # print(f'states len = {len(states_array)} | current time = {current_time}')
+    current_state = states_array.popleft()
+    if current_state.get_robots(ResourceType.OBSIDIAN) > 0:
+      print(current_state.get_robots(ResourceType.OBSIDIAN))
+      pass
+    # se o tempo do estado for maior que o current time da função:
+    if current_state.time > current_time:
+      # se alguém construiu um robô de geodo, tira TODOS os estados que não construíram um robô de geodo
+      # TODO
+      # atualiza o current time e o check se algué construiu robô de geodo.
+      current_time = current_state.time
+      was_geode_robot_built = False
+      number_of_geode_robots = 0
+
+    # se o estado chegou chegou no tempo...
+    if current_state.time > time_limit:
+      # verificar se o número de geodos é maior do que o máximo
+      if current_state.get_geodes() > max_geodes_state.get_geodes():
+        #  se sim, bots na variável
+        max_geodes_state = current_state
+    else:
+      # senão chegou no final do tempo:
+      # - ver se é possível fazer robo de geodo; se SIM, fazer ele, colocar novo estado na fila, e só
+      if current_state.can_build_robot(ResourceType.GEODE):
+        new_state = deepcopy(current_state)
+
+        new_state.elapse_time()
+        new_state.start_building_robot(ResourceType.GEODE)
+        new_state.execute_robots_functions()
+        new_state.finish_building_robot()
+
+        states_array.append(new_state)
+      else:
+        # - senão, ver se é possível fazer os outros robôs, se SIM, cria o robô, passa o tempo e bota na fila
+        for resource in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN]:
+          if current_state.can_build_robot(resource):
+            new_state = deepcopy(current_state)
+
+            new_state.elapse_time()
+            new_state.start_building_robot(resource)
+            new_state.execute_robots_functions()
+            new_state.finish_building_robot()
+
+            states_array.append(new_state)
+
+        # - depois, faz sem criar nenhum robô
+        new_state = deepcopy(current_state)
+
+        new_state.elapse_time()
+        new_state.execute_robots_functions()
+
+        states_array.append(new_state)
+
+  if max_geodes_state.debug:
+    print(max_geodes_state.log)
+    # print(last_sate.log)
+
+  # no final do while, returnar o máximo de geodos multiplicado pelo id
+  return max_geodes_state.get_geodes() * blueprint.id
+
+# Helper functions
 def get_robot_type_string(type: ResourceType) -> str:
     adj = 'cracking' if type == ResourceType.GEODE else 'collecting'
-    return f'{type}-{adj}'
+    return f'{type.value}-{adj}'
 
 def add_resources(res1: tuple[int, int, int, int], res2: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
   return (
@@ -153,12 +280,11 @@ def resource_to_string(resources: tuple[int, int, int, int]) -> str:
 
   return value if value != '' else 'no resources'
 
-# Helper funcions and classes
+# Puzzle input parse
 def get_filepath(file):
   absolute_path = os.path.dirname(__file__)
   return os.path.join(absolute_path, file)
 
-# Puzzle input parse
 STRING_PATTERN = re.compile('Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.')
 
 def get_blueprint_data(line):
@@ -181,11 +307,13 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
     if l_strip != "":
       data = get_blueprint_data(l_strip)
       new_blueprint = Blueprint(*data)
-      new_blueprint.print_info()
-      state = State(new_blueprint, DEBUG_PRINT)
-      # quality_sum += new_blueprint.get_quality_level()
-      # print(f'Quality Level: {new_blueprint.get_quality_level(DEBUG_PRINT)}')
-      print()
+
+      if DEBUG_PRINT:
+        new_blueprint.print_info()
+
+      quality_sum += calculate_quality_level(new_blueprint, TIME_LIMIT)
+      # print(f'Quality Level: {new_blueprint.get_quality_level(DEBUG_PRINT)}', end='\n')
+      break
 
 print(quality_sum)
 print()
