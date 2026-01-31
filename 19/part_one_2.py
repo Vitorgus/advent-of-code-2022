@@ -1,12 +1,10 @@
 import os
 import re
-import math
 import time
 from enum import Enum
 from collections import deque
 from collections.abc import Mapping
 from copy import deepcopy
-from functools import total_ordering
 
 # type Resources = tuple[int, int, int, int]
 
@@ -14,7 +12,7 @@ start_time = time.time()
 
 # Puzzle inputs and settings
 FILE_NAME = "input.txt"
-DEBUG_PRINT = True
+DEBUG_PRINT = False
 TIME_LIMIT = 24
 
 
@@ -116,6 +114,7 @@ class State:
     # ALERT: estou assumindo que só é possível fazer um único robô por vez
     if self.current_building_robot != None:
       self.log += f'ERROR: already building robot of type {self.current_building_robot.value}. Robot will be ovewritten.\n'
+
     self.current_building_robot = type
 
     costs = self.blueprint.robot_costs[type]
@@ -181,7 +180,7 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
     # se o tempo do estado for maior que o current time da função:
     if current_state.time > current_time:
-      # se alguém construiu um robô de geodo, tira TODOS os estados que não construíram um robô de geodo
+      # se alguém construiu um robô do typo do cutoff, tira TODOS os estados que não tem o mesmo número de robô de cutoff
       if was_cutoff_robot_built:
         current_states_len = len(states_array)
 
@@ -193,10 +192,10 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
         if current_state.get_robots(cutoff_resource_type) < number_of_cutoff_robots:
           continue
+
+        was_cutoff_robot_built = False
       # atualiza o current time e o check se algué construiu robô de geodo.
       current_time = current_state.time
-      was_cutoff_robot_built = False
-      number_of_cutoff_robots = 0
 
     # se o estado chegou chegou no tempo...
     if current_state.time >= time_limit:
@@ -207,7 +206,7 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
     else:
       # senão chegou no final do tempo:
       # - ver se é possível fazer robo de geodo; se SIM, fazer ele, colocar novo estado na fila, e só
-        # - senão, ver se é possível fazer os outros robôs, se SIM, cria o robô, passa o tempo e bota na fila
+      # - senão, ver se é possível fazer os outros robôs, se SIM, cria o robô, passa o tempo e bota na fila
       blacklist = []
 
       for type in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN, ResourceType.GEODE]:
@@ -223,10 +222,11 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
           states_array.append(new_state)
           blacklist.append(type)
 
-          if type == ResourceType.GEODE:
+          if cutoff_resource_type != ResourceType.GEODE and type == ResourceType.GEODE:
             cutoff_resource_type = ResourceType.GEODE
+            number_of_cutoff_robots = 0
 
-          if type == cutoff_resource_type:
+          if type == cutoff_resource_type and new_state.get_robots(type) > number_of_cutoff_robots:
             was_cutoff_robot_built = True
             number_of_cutoff_robots = new_state.get_robots(type)
             continue
@@ -244,7 +244,6 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
   if max_geodes_state.debug:
     print(max_geodes_state.log)
-
     print(f'Max geodes for blueprint {new_blueprint.id}: {max_geodes_state.get_geodes()} | Quality level: {max_geodes_state.get_geodes() * blueprint.id}\n')
 
   # no final do while, returnar o máximo de geodos multiplicado pelo id
@@ -342,7 +341,8 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
 
 if DEBUG_PRINT:
   print(f'Quality sum = {quality_sum}')
-  print()
-  print(f'Execution time: {time.time() - start_time}')
 else:
   print(quality_sum)
+
+print()
+print(f'Execution time: {(time.time() - start_time):.2f}s')
