@@ -14,8 +14,8 @@ start_time = time.time()
 
 # Puzzle inputs and settings
 FILE_NAME = "example.txt"
-DEBUG_PRINT = True
-TIME_LIMIT = 19
+DEBUG_PRINT = False
+TIME_LIMIT = 24
 
 
 class ResourceType(Enum):
@@ -177,20 +177,28 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
   while len(states_array) > 0:
     print(f'states len = {len(states_array)} | current time = {current_time}')
     current_state = states_array.popleft()
-    if current_state.get_robots(ResourceType.OBSIDIAN) > 0:
-      print(current_state.get_robots(ResourceType.OBSIDIAN))
-      pass
+
     # se o tempo do estado for maior que o current time da função:
     if current_state.time > current_time:
       # se alguém construiu um robô de geodo, tira TODOS os estados que não construíram um robô de geodo
-      # TODO
+      if was_geode_robot_built:
+        current_states_len = len(states_array)
+
+        for _ in range(current_states_len):
+          state = states_array.popleft()
+
+          if state.get_robots(ResourceType.GEODE) >= number_of_geode_robots:
+            states_array.append(state)
+
+        if current_state.get_robots(ResourceType.GEODE) < number_of_geode_robots:
+          continue
       # atualiza o current time e o check se algué construiu robô de geodo.
       current_time = current_state.time
       was_geode_robot_built = False
       number_of_geode_robots = 0
 
     # se o estado chegou chegou no tempo...
-    if current_state.time > time_limit:
+    if current_state.time >= time_limit:
       # verificar se o número de geodos é maior do que o máximo
       if current_state.get_geodes() > max_geodes_state.get_geodes():
         #  se sim, bots na variável
@@ -198,45 +206,40 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
     else:
       # senão chegou no final do tempo:
       # - ver se é possível fazer robo de geodo; se SIM, fazer ele, colocar novo estado na fila, e só
-      if current_state.can_build_robot(ResourceType.GEODE):
-        new_state = deepcopy(current_state)
-
-        new_state.elapse_time()
-        new_state.start_building_robot(ResourceType.GEODE)
-        new_state.execute_robots_functions()
-        new_state.finish_building_robot()
-
-        states_array.append(new_state)
-      else:
         # - senão, ver se é possível fazer os outros robôs, se SIM, cria o robô, passa o tempo e bota na fila
-        blacklist = []
-        for type in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN]:
-          if current_state.can_build_robot(type):
-            new_state = deepcopy(current_state)
+      blacklist = []
 
-            new_state.elapse_time()
-            new_state.start_building_robot(type)
-            new_state.execute_robots_functions()
-            new_state.finish_building_robot()
-            new_state.clear_blacklist()
+      for type in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN, ResourceType.GEODE]:
+        if current_state.can_build_robot(type):
+          new_state = deepcopy(current_state)
 
-            states_array.append(new_state)
-            blacklist.append(type)
+          new_state.elapse_time()
+          new_state.start_building_robot(type)
+          new_state.execute_robots_functions()
+          new_state.finish_building_robot()
+          new_state.clear_blacklist()
 
-        # - depois, faz sem criar nenhum robô
-        new_state = deepcopy(current_state)
+          states_array.append(new_state)
+          blacklist.append(type)
 
-        for type in blacklist:
-          new_state.add_to_blacklist(type)
+          if type == ResourceType.GEODE:
+            was_geode_robot_built = True
+            number_of_geode_robots = new_state.get_robots(type)
+            continue
 
-        new_state.elapse_time()
-        new_state.execute_robots_functions()
+      # - depois, faz sem criar nenhum robô
+      new_state = deepcopy(current_state)
 
-        states_array.append(new_state)
+      for type in blacklist:
+        new_state.add_to_blacklist(type)
+
+      new_state.elapse_time()
+      new_state.execute_robots_functions()
+
+      states_array.append(new_state)
 
   if max_geodes_state.debug:
     print(max_geodes_state.log)
-    # print(last_sate.log)
 
   # no final do while, returnar o máximo de geodos multiplicado pelo id
   return max_geodes_state.get_geodes() * blueprint.id
@@ -328,9 +331,9 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
       if DEBUG_PRINT:
         new_blueprint.print_info()
 
-      quality_sum += calculate_quality_level(new_blueprint, TIME_LIMIT)
-      # print(f'Quality Level: {new_blueprint.get_quality_level(DEBUG_PRINT)}', end='\n')
-      break
+      quality_level = calculate_quality_level(new_blueprint, TIME_LIMIT)
+      print(f'Quality Level: {quality_level}', end='\n')
+      quality_sum += quality_level
 
 print(quality_sum)
 print()
