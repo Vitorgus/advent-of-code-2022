@@ -40,6 +40,12 @@ class Blueprint:
       ResourceType.OBSIDIAN: (obsidian_robot_ore_cost, obsidian_robot_clay_cost, 0, 0),
       ResourceType.GEODE: (geode_robot_ore_cost, 0, geode_robot_obsidian_cost, 0)
     }
+    self.max_cost: tuple[int, int, int, int] = (
+      max(ore_robot_ore_cost, clay_robot_ore_cost, obsidian_robot_ore_cost, geode_robot_ore_cost),
+      obsidian_robot_clay_cost,
+      geode_robot_obsidian_cost,
+      0
+    )
 
   def print_info(self) -> None:
     print(f'Blueprint ID: {self.id}')
@@ -137,18 +143,11 @@ class State:
       self.log += f'The new {robot_strig} robot is ready; you now have {robot_qty} of them.\n'
 
     if self.current_building_robot != ResourceType.GEODE:
-      perm_blacklisted = True
+        resource_blueprint_qty = get_single_resource(self.blueprint.max_cost, self.current_building_robot)
 
-      for type in self.blueprint.robot_costs:
-        resource_blueprint_qty = get_single_resource(self.blueprint.robot_costs[type], self.current_building_robot)
-
-        if robot_qty < resource_blueprint_qty:
-          perm_blacklisted = False
-          break
-
-      if perm_blacklisted:
-        # self.log += f'BLACKLISTED: type = {self.current_building_robot} | robots = {self.robots} | {[str(self.blueprint.robot_costs[x]) for x in self.blueprint.robot_costs]}\n'
-        self.perm_robot_blacklist.add(self.current_building_robot)
+        if robot_qty >= resource_blueprint_qty:
+          # self.log += f'BLACKLISTED: type = {self.current_building_robot} | robots = {self.robots} | {[str(self.blueprint.robot_costs[x]) for x in self.blueprint.robot_costs]}\n'
+          self.perm_robot_blacklist.add(self.current_building_robot)
 
     self.current_building_robot = None
 
