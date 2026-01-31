@@ -61,12 +61,13 @@ class State:
     self.current_building_robot: ResourceType | None = None
     self.log = ''
 
-    self.robot_blacklist = set[ResourceType]()
+    self.temp_robot_blacklist = set[ResourceType]()
+    self.perm_robot_blacklist = set[ResourceType]()
 
   def get_geodes(self) -> int:
-    return self.get_resources(ResourceType.GEODE)
+    return self.get_resource_qty(ResourceType.GEODE)
 
-  def get_robots(self, type: ResourceType) -> int:
+  def get_robots_qty(self, type: ResourceType) -> int:
     match type:
       case ResourceType.ORE:
         return self.robots[0]
@@ -79,7 +80,7 @@ class State:
       case _:
         return 0
 
-  def get_resources(self, type: ResourceType) -> int:
+  def get_resource_qty(self, type: ResourceType) -> int:
     match type:
       case ResourceType.ORE:
         return self.resources[0]
@@ -93,15 +94,15 @@ class State:
         return 0
 
   def add_to_blacklist(self, type: ResourceType) -> None:
-    self.robot_blacklist.add(type)
+    self.temp_robot_blacklist.add(type)
 
   def clear_blacklist(self) -> None:
-    self.robot_blacklist.clear()
+    self.temp_robot_blacklist.clear()
 
   def can_build_robot(self, type: ResourceType) -> bool:
     costs = self.blueprint.robot_costs[type]
 
-    if type in self.robot_blacklist:
+    if type in self.perm_robot_blacklist or type in self.temp_robot_blacklist:
       return False
 
     for resource_index in range(len(costs)):
@@ -129,9 +130,25 @@ class State:
       return
 
     self.robots = add_resources(self.robots, get_resource_unit_tuple(self.current_building_robot))
+    robot_strig = get_robot_type_string(self.current_building_robot)
+    robot_qty = self.get_robots_qty(self.current_building_robot)
 
     if self.debug:
-      self.log += f'The new {get_robot_type_string(self.current_building_robot)} robot is ready; you now have {self.get_robots(self.current_building_robot)} of them.\n'
+      self.log += f'The new {robot_strig} robot is ready; you now have {robot_qty} of them.\n'
+
+    if self.current_building_robot != ResourceType.GEODE:
+      perm_blacklisted = True
+
+      for type in self.blueprint.robot_costs:
+        resource_blueprint_qty = get_single_resource(self.blueprint.robot_costs[type], self.current_building_robot)
+
+        if robot_qty < resource_blueprint_qty:
+          perm_blacklisted = False
+          break
+
+      if perm_blacklisted:
+        # print(f'BLACKLISTED: type = {self.current_building_robot} | robots = {self.robots} | {[str(self.blueprint.robot_costs[x]) for x in self.blueprint.robot_costs]}')
+        self.perm_robot_blacklist.add(self.current_building_robot)
 
     self.current_building_robot = None
 
@@ -149,13 +166,13 @@ class State:
 
     if self.debug:
       for resource in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN, ResourceType.GEODE]:
-        robots_number = self.get_robots(resource)
+        robots_number = self.get_robots_qty(resource)
 
         if robots_number > 0:
           action = 'crack' if resource == ResourceType.GEODE else 'collect'
           action += 's' if robots_number > 1 else ''
 
-          current_resource_number = self.get_resources(resource)
+          current_resource_number = self.get_resource_qty(resource)
           final_resource_str = f'open {resource.value}' if resource == ResourceType.GEODE else f'{resource.value}'
 
           self.log += f'{robots_number} {resource.value}-{action}ing robot {action} {robots_number} {resource.value}; you now have {current_resource_number} {final_resource_str}.\n'
@@ -165,9 +182,6 @@ class State:
 def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
   max_geodes_state = State(blueprint, DEBUG_PRINT)
   current_time = 0
-  cutoff_resource_type = ResourceType.OBSIDIAN
-  was_cutoff_robot_built = False
-  number_of_cutoff_robots = 0
 
   states_array = deque[State]()
   states_array.append(State(blueprint, DEBUG_PRINT))
@@ -175,26 +189,11 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
   # começar while loop de enquanto ainda tem estado na fila
   while len(states_array) > 0:
-    # print(f'states len = {len(states_array)} | current time = {current_time}')
+    print(f'blueprint {blueprint.id} | states len = {len(states_array)} | current time = {current_time}')
     current_state = states_array.popleft()
 
     # se o tempo do estado for maior que o current time da função:
     if current_state.time > current_time:
-      # se alguém construiu um robô do typo do cutoff, tira TODOS os estados que não tem o mesmo número de robô de cutoff
-      if was_cutoff_robot_built:
-        current_states_len = len(states_array)
-
-        for _ in range(current_states_len):
-          state = states_array.popleft()
-
-          if state.get_robots(cutoff_resource_type) >= number_of_cutoff_robots:
-            states_array.append(state)
-
-        if current_state.get_robots(cutoff_resource_type) < number_of_cutoff_robots:
-          continue
-
-        was_cutoff_robot_built = False
-      # atualiza o current time e o check se algué construiu robô de geodo.
       current_time = current_state.time
 
     # se o estado chegou chegou no tempo...
@@ -222,15 +221,6 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
           states_array.append(new_state)
           blacklist.append(type)
 
-          if cutoff_resource_type != ResourceType.GEODE and type == ResourceType.GEODE:
-            cutoff_resource_type = ResourceType.GEODE
-            number_of_cutoff_robots = 0
-
-          if type == cutoff_resource_type and new_state.get_robots(type) > number_of_cutoff_robots:
-            was_cutoff_robot_built = True
-            number_of_cutoff_robots = new_state.get_robots(type)
-            continue
-
       # - depois, faz sem criar nenhum robô
       new_state = deepcopy(current_state)
 
@@ -253,6 +243,19 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 def get_robot_type_string(type: ResourceType) -> str:
     adj = 'cracking' if type == ResourceType.GEODE else 'collecting'
     return f'{type.value}-{adj}'
+
+def get_single_resource(res: tuple[int, int, int, int], type: ResourceType) -> int:
+  match type:
+    case ResourceType.ORE:
+      return res[0]
+    case ResourceType.CLAY:
+      return res[1]
+    case ResourceType.OBSIDIAN:
+      return res[2]
+    case ResourceType.GEODE:
+      return res[3]
+    case _:
+      return -1
 
 def add_resources(res1: tuple[int, int, int, int], res2: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
   return (
