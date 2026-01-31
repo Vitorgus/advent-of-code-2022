@@ -15,7 +15,7 @@ start_time = time.time()
 # Puzzle inputs and settings
 FILE_NAME = "example.txt"
 DEBUG_PRINT = True
-TIME_LIMIT = 13
+TIME_LIMIT = 19
 
 
 class ResourceType(Enum):
@@ -63,6 +63,8 @@ class State:
     self.current_building_robot: ResourceType | None = None
     self.log = ''
 
+    self.robot_blacklist = set[ResourceType]()
+
   def get_geodes(self) -> int:
     return self.get_resources(ResourceType.GEODE)
 
@@ -92,8 +94,17 @@ class State:
       case _:
         return 0
 
+  def add_to_blacklist(self, type: ResourceType) -> None:
+    self.robot_blacklist.add(type)
+
+  def clear_blacklist(self) -> None:
+    self.robot_blacklist.clear()
+
   def can_build_robot(self, type: ResourceType) -> bool:
     costs = self.blueprint.robot_costs[type]
+
+    if type in self.robot_blacklist:
+      return False
 
     for resource_index in range(len(costs)):
       if self.resources[resource_index] < costs[resource_index]:
@@ -164,7 +175,7 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
   # começar while loop de enquanto ainda tem estado na fila
   while len(states_array) > 0:
-    # print(f'states len = {len(states_array)} | current time = {current_time}')
+    print(f'states len = {len(states_array)} | current time = {current_time}')
     current_state = states_array.popleft()
     if current_state.get_robots(ResourceType.OBSIDIAN) > 0:
       print(current_state.get_robots(ResourceType.OBSIDIAN))
@@ -198,19 +209,25 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
         states_array.append(new_state)
       else:
         # - senão, ver se é possível fazer os outros robôs, se SIM, cria o robô, passa o tempo e bota na fila
-        for resource in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN]:
-          if current_state.can_build_robot(resource):
+        blacklist = []
+        for type in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN]:
+          if current_state.can_build_robot(type):
             new_state = deepcopy(current_state)
 
             new_state.elapse_time()
-            new_state.start_building_robot(resource)
+            new_state.start_building_robot(type)
             new_state.execute_robots_functions()
             new_state.finish_building_robot()
+            new_state.clear_blacklist()
 
             states_array.append(new_state)
+            blacklist.append(type)
 
         # - depois, faz sem criar nenhum robô
         new_state = deepcopy(current_state)
+
+        for type in blacklist:
+          new_state.add_to_blacklist(type)
 
         new_state.elapse_time()
         new_state.execute_robots_functions()
