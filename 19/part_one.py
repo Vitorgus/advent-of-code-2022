@@ -1,11 +1,12 @@
 import os
 import re
-import math
 import time
 from enum import Enum
 from collections import deque
+from collections.abc import Mapping
 from copy import deepcopy
-from functools import total_ordering
+
+# type Resources = tuple[int, int, int, int]
 
 start_time = time.time()
 
@@ -14,143 +15,12 @@ FILE_NAME = "input.txt"
 DEBUG_PRINT = True
 TIME_LIMIT = 24
 
+
 class ResourceType(Enum):
   ORE = 'ore'
   CLAY = 'clay'
   OBSIDIAN = 'obsidian'
   GEODE = 'geode'
-
-@total_ordering
-class ResourceList:
-  # TODO juro que transofrmar isso num tipo de dict salva minha vida.
-  # Inclusive acho que já fiz em algum desafio anterior
-  def __init__(self, ore=0, clay=0, obsidian=0, geode=0) -> None:
-    self.ore = ore
-    self.clay = clay
-    self.obsidian = obsidian
-    self.geode = geode
-
-  def __getitem__(self, key) -> int:
-    if key == ResourceType.ORE or key == 'ore':
-      return self.ore
-    elif key == ResourceType.CLAY or key == 'clay':
-      return self.clay
-    elif key == ResourceType.OBSIDIAN or key == 'obsidian':
-      return self.obsidian
-    elif key == ResourceType.GEODE or key == 'geode':
-      return self.geode
-    else:
-      raise KeyError
-
-  def __add__(self, other):
-    if not isinstance(other, ResourceList):
-      raise NotImplemented
-
-    return ResourceList(self.ore+other.ore,
-                     self.clay+other.clay,
-                     self.obsidian+other.obsidian,
-                     self.geode+other.geode)
-
-  def __sub__(self, other):
-    if not isinstance(other, ResourceList):
-      raise NotImplemented
-
-    return ResourceList(self.ore-other.ore,
-                     self.clay-other.clay,
-                     self.obsidian-other.obsidian,
-                     self.geode-other.geode)
-
-  def __eq__(self, other) -> bool:
-    if not isinstance(other, ResourceList):
-      return NotImplemented
-
-    return self.ore == other.ore \
-        and self.clay == other.clay \
-        and self.obsidian == other.obsidian
-
-  def __gt__(self, other) -> bool:
-    if not isinstance(other, ResourceList):
-      return NotImplemented
-
-    return self.ore >= other.ore \
-        and self.clay >= other.clay \
-        and self.obsidian >= other.obsidian
-
-  def __str__(self) -> str:
-    value = ''
-
-    if self.ore > 0:
-      value += f'{self.ore} ore'
-    if self.clay > 0:
-      if value != '':
-        value += ' and '
-      value += f'{self.clay} clay'
-    if self.obsidian > 0:
-      if value != '':
-        value += ' and '
-      value += f'{self.obsidian} obsidian'
-    if self.geode > 0:
-      if value != '':
-        value += ' and '
-      value += f'{self.geode} geode'
-
-    return value if value != '' else 'no resources'
-
-class State:
-  def __init__(self) -> None:
-    self.time = 0
-    self.resources = ResourceList()
-    self.robots = {
-      ResourceType.ORE: 1,
-      ResourceType.CLAY: 0,
-      ResourceType.OBSIDIAN: 0,
-      ResourceType.GEODE: 0
-    }
-    self.robot_build_order = []
-
-  def estimate_production(self, time = 0) -> ResourceList:
-    if time <= 0:
-      return ResourceList()
-
-    ore_production = self.robots[ResourceType.ORE] * time
-    clay_production = self.robots[ResourceType.CLAY] * time
-    obsidian_production = self.robots[ResourceType.OBSIDIAN] * time
-    geode_production = self.robots[ResourceType.GEODE] * time
-
-    return ResourceList(ore_production,
-                     clay_production,
-                     obsidian_production,
-                     geode_production)
-
-  def pass_time(self, time = 0) -> None:
-    if time <= 0:
-      return
-
-    production = self.estimate_production(time)
-    self.resources += production
-    self.time += time
-
-    if self.time > TIME_LIMIT:
-      raise Exception(f'LIMIT: current time = {self.time}')
-
-  def pass_remaining_time(self) -> None:
-    remaining_time = TIME_LIMIT - self.time
-    self.pass_time(remaining_time)
-
-  def build_robot(self, robot_type: ResourceType, robot_cost: ResourceList) -> None:
-    if self.resources < robot_cost:
-      raise Exception('Cannot build robot')
-
-    self.pass_time(1)
-    self.resources -= robot_cost
-    self.robots[robot_type] += 1
-    self.robot_build_order.append(robot_type)
-
-  def print_info(self) -> None:
-    print(f'Time elapsed: {self.time}')
-    print(f'Resources: {self.resources}')
-    print(f'Robots: {self.robots}')
-    print(f'Build order: {self.robot_build_order}')
 
 
 class Blueprint:
@@ -164,127 +34,312 @@ class Blueprint:
                geode_robot_obsidian_cost: int
                ) -> None:
     self.id = id
-    self.max_geodes_possible = 0
-    self.robot_costs = {
-      ResourceType.ORE: ResourceList(ore_robot_ore_cost),
-      ResourceType.CLAY: ResourceList(clay_robot_ore_cost),
-      ResourceType.OBSIDIAN: ResourceList(obsidian_robot_ore_cost, obsidian_robot_clay_cost),
-      ResourceType.GEODE: ResourceList(geode_robot_ore_cost, 0, geode_robot_obsidian_cost)
+    self.robot_costs: Mapping[ResourceType, tuple[int, int, int, int]] = {
+      ResourceType.ORE: (ore_robot_ore_cost, 0, 0, 0),
+      ResourceType.CLAY: (clay_robot_ore_cost, 0, 0, 0),
+      ResourceType.OBSIDIAN: (obsidian_robot_ore_cost, obsidian_robot_clay_cost, 0, 0),
+      ResourceType.GEODE: (geode_robot_ore_cost, 0, geode_robot_obsidian_cost, 0)
     }
-
-  # Check if it's possible to build said robot on time
-  def is_possible_to_build(self, robot_type: ResourceType, state: State) -> bool:
-    remaining_time = TIME_LIMIT - state.time - 1
-
-    # It's not zero because it takes one time to build the robot
-    if remaining_time <= 0:
-      return False
-
-    robot_costs = self.robot_costs[robot_type]
-    possible_production = state.estimate_production(remaining_time)
-
-    return possible_production >= robot_costs
-
-  def should_build(self, robot_type: ResourceType, state: State) -> bool:
-    if robot_type == ResourceType.GEODE:
-      return True
-
-    # Return false if there are already enough robots to build literally any robot in one minute
-    needs_more_robots = False
-    for cost in self.robot_costs.values():
-      if cost[robot_type] > state.robots[robot_type]:
-        return True
-
-    return False
-
-  def time_to_build(self, robot_type: ResourceType, state: State) -> int:
-    time_to_pass = 0
-
-    cost_list = self.robot_costs[robot_type]
-    for resource in state.robots:
-      # check if you have robot available
-      # And check if you don't already have the available resources
-      qty_needed = cost_list[resource] - state.resources[resource]
-      if qty_needed > 0:
-        if state.robots[resource] <= 0:
-          return math.inf
-
-        time_needed_to_produce = math.ceil(qty_needed/state.robots[resource])
-        if time_needed_to_produce > time_to_pass:
-          time_to_pass = time_needed_to_produce
-
-    return time_to_pass
-
-  def pass_time_and_build(self, robot_type_to_build: ResourceType, state: State) -> State:
-    # should make new robot and pass the time
-
-    # Calculate needed time to acquire robot
-    time_to_pass = self.time_to_build(robot_type_to_build, state)
-
-    if time_to_pass + state.time > TIME_LIMIT:
-      raise Exception('OUT OF TIME')
-
-    # Pass said time and product
-    new_state = deepcopy(state)
-    new_state.pass_time(time_to_pass)
-    new_state.build_robot(robot_type_to_build, self.robot_costs[robot_type_to_build])
-
-    return new_state
-
-  def calculate_max_geodes_possible(self, debug=False) -> None:
-    self.max_geodes_possible = 0
-
-    possible_states: deque[State] = deque()
-    possible_states.append(State())
-
-    final_state = None
-
-    while (len(possible_states) > 0):
-      current_state = possible_states.popleft()
-
-      no_robot_to_build = True
-
-      for robot in self.robot_costs:
-        if self.is_possible_to_build(robot, current_state):
-          if self.should_build(robot, current_state):
-            no_robot_to_build = False
-            new_state = self.pass_time_and_build(robot, current_state)
-            possible_states.append(new_state)
-
-      # Add final state, when you can't build any more robots due to time limit
-      if no_robot_to_build:
-        current_state.pass_remaining_time()
-
-        if current_state.resources.geode > self.max_geodes_possible:
-          self.max_geodes_possible = current_state.resources.geode
-          final_state = current_state
-
-  def get_quality_level(self, debug=False) -> int:
-    if self.max_geodes_possible == 0:
-      self.calculate_max_geodes_possible(debug)
-
-    return self.id * self.max_geodes_possible
 
   def print_info(self) -> None:
     print(f'Blueprint ID: {self.id}')
 
     for key in self.robot_costs:
-      print(f'\t{key.value} robot costs: {self.robot_costs[key]}')
+      print(f'\t{key.value} robot costs: {resource_to_string(self.robot_costs[key])}')
+
+    print()
 
 
-# Helper funcions and classes
+class State:
+  def __init__(self, blueprint: Blueprint, debug: bool = False) -> None:
+    self.blueprint = blueprint
+    self.debug = debug
+
+    self.time = 0
+    self.resources: tuple[int, int, int, int] = (0, 0, 0, 0)
+    self.robots: tuple[int, int, int, int] = (1, 0, 0, 0)
+    self.current_building_robot: ResourceType | None = None
+    self.log = ''
+
+    self.temp_robot_blacklist = set[ResourceType]()
+    self.perm_robot_blacklist = set[ResourceType]()
+
+  def get_geodes(self) -> int:
+    return self.get_resource_qty(ResourceType.GEODE)
+
+  def get_robots_qty(self, type: ResourceType) -> int:
+    match type:
+      case ResourceType.ORE:
+        return self.robots[0]
+      case ResourceType.CLAY:
+        return self.robots[1]
+      case ResourceType.OBSIDIAN:
+        return self.robots[2]
+      case ResourceType.GEODE:
+        return self.robots[3]
+      case _:
+        return 0
+
+  def get_resource_qty(self, type: ResourceType) -> int:
+    match type:
+      case ResourceType.ORE:
+        return self.resources[0]
+      case ResourceType.CLAY:
+        return self.resources[1]
+      case ResourceType.OBSIDIAN:
+        return self.resources[2]
+      case ResourceType.GEODE:
+        return self.resources[3]
+      case _:
+        return 0
+
+  def add_to_blacklist(self, type: ResourceType) -> None:
+    self.temp_robot_blacklist.add(type)
+
+  def clear_blacklist(self) -> None:
+    self.temp_robot_blacklist.clear()
+
+  def can_build_robot(self, type: ResourceType) -> bool:
+    costs = self.blueprint.robot_costs[type]
+
+    if type in self.perm_robot_blacklist or type in self.temp_robot_blacklist:
+      return False
+
+    for resource_index in range(len(costs)):
+      if self.resources[resource_index] < costs[resource_index]:
+        return False
+
+    return True
+
+  def start_building_robot(self, type: ResourceType) -> None:
+    # ALERT: estou assumindo que só é possível fazer um único robô por vez
+    if self.current_building_robot != None:
+      self.log += f'ERROR: already building robot of type {self.current_building_robot.value}. Robot will be ovewritten.\n'
+
+    self.current_building_robot = type
+
+    costs = self.blueprint.robot_costs[type]
+    self.resources = subtract_resources(self.resources, costs)
+
+    if self.debug:
+      self.log += f'Spend {resource_to_string(costs)} to start building a {get_robot_type_string(type)} robot.\n'
+
+  def finish_building_robot(self) -> None:
+    # ALERT: estou assumindo que só é possível fazer um único robô por vez
+    if self.current_building_robot == None:
+      return
+
+    self.robots = add_resources(self.robots, get_resource_unit_tuple(self.current_building_robot))
+    robot_strig = get_robot_type_string(self.current_building_robot)
+    robot_qty = self.get_robots_qty(self.current_building_robot)
+
+    if self.debug:
+      self.log += f'The new {robot_strig} robot is ready; you now have {robot_qty} of them.\n'
+
+    if self.current_building_robot != ResourceType.GEODE:
+      perm_blacklisted = True
+
+      for type in self.blueprint.robot_costs:
+        resource_blueprint_qty = get_single_resource(self.blueprint.robot_costs[type], self.current_building_robot)
+
+        if robot_qty < resource_blueprint_qty:
+          perm_blacklisted = False
+          break
+
+      if perm_blacklisted:
+        # print(f'BLACKLISTED: type = {self.current_building_robot} | robots = {self.robots} | {[str(self.blueprint.robot_costs[x]) for x in self.blueprint.robot_costs]}')
+        self.perm_robot_blacklist.add(self.current_building_robot)
+
+    self.current_building_robot = None
+
+  def elapse_time(self) -> None:
+    self.time += 1
+
+    if self.debug:
+      if self.time > 1:
+        self.log += '\n'
+
+      self.log += f'== Minute {self.time} ==\n'
+
+  def execute_robots_functions(self) -> None:
+    self.resources = add_resources(self.resources, self.robots)
+
+    if self.debug:
+      for resource in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN, ResourceType.GEODE]:
+        robots_number = self.get_robots_qty(resource)
+
+        if robots_number > 0:
+          action = 'crack' if resource == ResourceType.GEODE else 'collect'
+          action += 's' if robots_number > 1 else ''
+
+          current_resource_number = self.get_resource_qty(resource)
+          final_resource_str = f'open {resource.value}' if resource == ResourceType.GEODE else f'{resource.value}'
+
+          self.log += f'{robots_number} {resource.value}-{action}ing robot {action} {robots_number} {resource.value}; you now have {current_resource_number} {final_resource_str}.\n'
+
+
+# Main function
+def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
+  max_geodes_state = State(blueprint, DEBUG_PRINT)
+  max_geode_prediction = 0
+
+  states_array = deque[State]()
+  states_array.append(State(blueprint, DEBUG_PRINT))
+
+
+  # começar while loop de enquanto ainda tem estado na fila
+  while len(states_array) > 0:
+    # print(f'blueprint {blueprint.id} | states len = {len(states_array)} | current time = {current_state.time}')
+    current_state = states_array.popleft()
+
+    if current_state.time >= time_limit:
+      if current_state.get_geodes() > max_geodes_state.get_geodes():
+        max_geodes_state = current_state
+    else:
+      remaining_time = time_limit - current_state.time
+      current_geodes = current_state.get_resource_qty(ResourceType.GEODE)
+      current_robots = current_state.get_robots_qty(ResourceType.GEODE)
+
+      # Geode potential production assuming one new robor will be built each minute
+      geode_potential = current_geodes +  (((current_robots + remaining_time + 1) * remaining_time / 2) if remaining_time > 1 else current_robots)
+
+      if geode_potential <= max_geode_prediction:
+        continue
+
+      blacklist = []
+
+      if current_state.time < time_limit - 1:
+        for type in [ResourceType.ORE, ResourceType.CLAY, ResourceType.OBSIDIAN, ResourceType.GEODE]:
+          if current_state.time == time_limit - 2 and type != ResourceType.GEODE:
+            continue
+
+          if current_state.can_build_robot(type):
+            new_state = deepcopy(current_state)
+
+            new_state.elapse_time()
+            new_state.start_building_robot(type)
+            new_state.execute_robots_functions()
+            new_state.finish_building_robot()
+            new_state.clear_blacklist()
+
+            states_array.append(new_state)
+            blacklist.append(type)
+
+            if type == ResourceType.GEODE:
+              geode_prediction = new_state.get_resource_qty(type) + (time_limit - new_state.time) * new_state.get_robots_qty(type)
+
+              if geode_prediction > max_geode_prediction:
+
+                max_geodes_state = new_state
+                max_geode_prediction = geode_prediction
+
+      new_state = deepcopy(current_state)
+
+      for type in blacklist:
+        new_state.add_to_blacklist(type)
+
+      new_state.elapse_time()
+      new_state.execute_robots_functions()
+
+      states_array.append(new_state)
+
+  if max_geodes_state.get_robots_qty(ResourceType.GEODE) > 0:
+    while max_geodes_state.time < time_limit:
+      max_geodes_state.elapse_time()
+      max_geodes_state.execute_robots_functions()
+
+  if max_geodes_state.debug:
+    print(max_geodes_state.log)
+    print(f'Max geodes for blueprint {new_blueprint.id}: {max_geodes_state.get_geodes()} | Quality level: {max_geodes_state.get_geodes() * blueprint.id}\n')
+
+  return max_geodes_state.get_geodes() * blueprint.id
+
+# Helper functions
+def get_robot_type_string(type: ResourceType) -> str:
+    adj = 'cracking' if type == ResourceType.GEODE else 'collecting'
+    return f'{type.value}-{adj}'
+
+def get_single_resource(res: tuple[int, int, int, int], type: ResourceType) -> int:
+  match type:
+    case ResourceType.ORE:
+      return res[0]
+    case ResourceType.CLAY:
+      return res[1]
+    case ResourceType.OBSIDIAN:
+      return res[2]
+    case ResourceType.GEODE:
+      return res[3]
+    case _:
+      return -1
+
+def add_resources(res1: tuple[int, int, int, int], res2: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+  return (
+    res1[0] + res2[0],
+    res1[1] + res2[1],
+    res1[2] + res2[2],
+    res1[3] + res2[3],
+  )
+
+def subtract_resources(res1: tuple[int, int, int, int], res2: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+  return (
+    res1[0] - res2[0],
+    res1[1] - res2[1],
+    res1[2] - res2[2],
+    res1[3] - res2[3],
+  )
+
+def get_resource_unit_tuple(type: ResourceType) -> tuple[int, int, int, int]:
+  match type:
+    case ResourceType.ORE:
+      return (1, 0, 0, 0)
+    case ResourceType.CLAY:
+      return (0, 1, 0, 0)
+    case ResourceType.OBSIDIAN:
+      return (0, 0 ,1, 0)
+    case ResourceType.GEODE:
+      return (0, 0, 0, 1)
+    case _:
+      return (0, 0, 0, 0)
+
+def resource_to_string(resources: tuple[int, int, int, int]) -> str:
+  (ore, clay, obsidian, geode) = resources
+
+  value = ''
+
+  if ore > 0:
+    value += f'{ore} ore'
+  if clay > 0:
+    if value != '':
+      value += ' and '
+    value += f'{clay} clay'
+  if obsidian > 0:
+    if value != '':
+      value += ' and '
+    value += f'{obsidian} obsidian'
+  if geode > 0:
+    if value != '':
+      value += ' and '
+    value += f'{geode} geode'
+
+  return value if value != '' else 'no resources'
+
+# Puzzle input parse
 def get_filepath(file):
   absolute_path = os.path.dirname(__file__)
   return os.path.join(absolute_path, file)
 
-# Puzzle input parse
 STRING_PATTERN = re.compile('Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.')
 
 def get_blueprint_data(line):
-  raw_data = STRING_PATTERN.fullmatch(line).groups()
-  mapped_data = map(lambda x : int(x), raw_data)
-  converted_data = tuple(mapped_data)
-  return converted_data
+  match = STRING_PATTERN.fullmatch(line)
+
+  if match != None:
+    raw_data = match.groups()
+    mapped_data = map(lambda x : int(x), raw_data)
+    converted_data = tuple(mapped_data)
+    return converted_data
+
+  return ()
 
 quality_sum = 0
 
@@ -295,11 +350,17 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
     if l_strip != "":
       data = get_blueprint_data(l_strip)
       new_blueprint = Blueprint(*data)
-      new_blueprint.print_info()
-      quality_sum += new_blueprint.get_quality_level()
-      print(f'Quality Level: {new_blueprint.get_quality_level(DEBUG_PRINT)}')
-      print()
 
-print(quality_sum)
+      if DEBUG_PRINT:
+        new_blueprint.print_info()
+
+      quality_level = calculate_quality_level(new_blueprint, TIME_LIMIT)
+      quality_sum += quality_level
+
+if DEBUG_PRINT:
+  print(f'Quality sum = {quality_sum}')
+else:
+  print(quality_sum)
+
 print()
-print(f'Execution time: {time.time() - start_time}')
+print(f'Execution time: {(time.time() - start_time):.2f}s')
