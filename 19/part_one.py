@@ -12,7 +12,7 @@ start_time = time.time()
 
 # Puzzle inputs and settings
 FILE_NAME = "input.txt"
-DEBUG_PRINT = True
+DEBUG_PRINT = False
 TIME_LIMIT = 24
 
 
@@ -147,7 +147,7 @@ class State:
           break
 
       if perm_blacklisted:
-        # print(f'BLACKLISTED: type = {self.current_building_robot} | robots = {self.robots} | {[str(self.blueprint.robot_costs[x]) for x in self.blueprint.robot_costs]}')
+        # self.log += f'BLACKLISTED: type = {self.current_building_robot} | robots = {self.robots} | {[str(self.blueprint.robot_costs[x]) for x in self.blueprint.robot_costs]}\n'
         self.perm_robot_blacklist.add(self.current_building_robot)
 
     self.current_building_robot = None
@@ -170,12 +170,13 @@ class State:
 
         if robots_number > 0:
           action = 'crack' if resource == ResourceType.GEODE else 'collect'
-          action += 's' if robots_number > 1 else ''
+          action_plural = 's' if resource == ResourceType.GEODE and robots_number == 1 else ''
+          resource_plural = 's' if resource == ResourceType.GEODE and robots_number > 1 else ''
 
           current_resource_number = self.get_resource_qty(resource)
           final_resource_str = f'open {resource.value}' if resource == ResourceType.GEODE else f'{resource.value}'
 
-          self.log += f'{robots_number} {resource.value}-{action}ing robot {action} {robots_number} {resource.value}; you now have {current_resource_number} {final_resource_str}.\n'
+          self.log += f'{robots_number} {resource.value}-{action}ing robot {action+action_plural} {robots_number} {resource.value+resource_plural}; you now have {current_resource_number} {final_resource_str}.\n'
 
 
 # Main function
@@ -201,9 +202,10 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
       current_robots = current_state.get_robots_qty(ResourceType.GEODE)
 
       # Geode potential production assuming one new robor will be built each minute
-      geode_potential = current_geodes +  (((current_robots + remaining_time + 1) * remaining_time / 2) if remaining_time > 1 else current_robots)
+      geode_potential = current_geodes +  (((current_robots * 2 + remaining_time - 1) * remaining_time / 2) if remaining_time > 1 else current_robots)
 
       if geode_potential <= max_geode_prediction:
+        # print(f'SKIPPED | MAX PREDICTION: {max_geode_prediction} | POTENTIAL: {geode_potential} | PRODUCTION: {current_state.resources} | ROBOTS: {current_state.robots} | TIME: {current_state.time} | TIME LEFT: {remaining_time}')
         continue
 
       blacklist = []
