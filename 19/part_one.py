@@ -11,7 +11,7 @@ from copy import deepcopy
 start_time = time.time()
 
 # Puzzle inputs and settings
-FILE_NAME = "input.txt"
+FILE_NAME = "example.txt"
 DEBUG_PRINT = False
 TIME_LIMIT = 24
 
@@ -102,9 +102,6 @@ class State:
   def add_to_blacklist(self, type: ResourceType) -> None:
     self.temp_robot_blacklist.add(type)
 
-  def clear_blacklist(self) -> None:
-    self.temp_robot_blacklist.clear()
-
   def can_build_robot(self, type: ResourceType) -> bool:
     costs = self.blueprint.robot_costs[type]
 
@@ -117,20 +114,38 @@ class State:
 
     return True
 
-  def start_building_robot(self, type: ResourceType) -> None:
-    # ALERT: estou assumindo que só é possível fazer um único robô por vez
-    if self.current_building_robot != None:
-      self.log += f'ERROR: already building robot of type {self.current_building_robot.value}. Robot will be ovewritten.\n'
-
+  def set_robot_to_build(self, type: ResourceType) -> None:
     self.current_building_robot = type
 
-    costs = self.blueprint.robot_costs[type]
+  def elapse_time(self) -> None:
+    self.time += 1
+
+    if self.debug:
+      if self.time > 1:
+        self.log += '\n'
+
+      self.log += f'== Minute {self.time} ==\n'
+
+    self._start_building_robot()
+    self._execute_robots_functions()
+    self._finish_building_robot()
+
+  def _clear_blacklist(self) -> None:
+    self.temp_robot_blacklist.clear()
+
+  def _start_building_robot(self) -> None:
+    # ALERT: estou assumindo que só é possível fazer um único robô por vez
+    if self.current_building_robot == None:
+      # self.log += f'ERROR: already building robot of type {self.current_building_robot.value}. Robot will be ovewritten.\n'
+      return
+
+    costs = self.blueprint.robot_costs[self.current_building_robot]
     self.resources = subtract_resources(self.resources, costs)
 
     if self.debug:
-      self.log += f'Spend {resource_to_string(costs)} to start building a {get_robot_type_string(type)} robot.\n'
+      self.log += f'Spend {resource_to_string(costs)} to start building a {get_robot_type_string(self.current_building_robot)} robot.\n'
 
-  def finish_building_robot(self) -> None:
+  def _finish_building_robot(self) -> None:
     # ALERT: estou assumindo que só é possível fazer um único robô por vez
     if self.current_building_robot == None:
       return
@@ -150,17 +165,9 @@ class State:
           self.perm_robot_blacklist.add(self.current_building_robot)
 
     self.current_building_robot = None
+    self._clear_blacklist()
 
-  def elapse_time(self) -> None:
-    self.time += 1
-
-    if self.debug:
-      if self.time > 1:
-        self.log += '\n'
-
-      self.log += f'== Minute {self.time} ==\n'
-
-  def execute_robots_functions(self) -> None:
+  def _execute_robots_functions(self) -> None:
     self.resources = add_resources(self.resources, self.robots)
 
     if self.debug:
@@ -189,8 +196,8 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
   # começar while loop de enquanto ainda tem estado na fila
   while len(states_array) > 0:
-    # print(f'blueprint {blueprint.id} | states len = {len(states_array)} | current time = {current_state.time}')
     current_state = states_array.popleft()
+    print(f'blueprint {blueprint.id} | states len = {len(states_array)} | current time = {current_state.time}')
 
     if current_state.time >= time_limit:
       if current_state.get_geodes() > max_geodes_state.get_geodes():
@@ -217,11 +224,8 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
           if current_state.can_build_robot(type):
             new_state = deepcopy(current_state)
 
+            new_state.set_robot_to_build(type)
             new_state.elapse_time()
-            new_state.start_building_robot(type)
-            new_state.execute_robots_functions()
-            new_state.finish_building_robot()
-            new_state.clear_blacklist()
 
             states_array.append(new_state)
             blacklist.append(type)
@@ -240,14 +244,12 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
         new_state.add_to_blacklist(type)
 
       new_state.elapse_time()
-      new_state.execute_robots_functions()
 
       states_array.append(new_state)
 
   if max_geodes_state.get_robots_qty(ResourceType.GEODE) > 0:
     while max_geodes_state.time < time_limit:
       max_geodes_state.elapse_time()
-      max_geodes_state.execute_robots_functions()
 
   if max_geodes_state.debug:
     print(max_geodes_state.log)
