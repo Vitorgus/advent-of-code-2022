@@ -5,7 +5,7 @@ import math
 from enum import Enum
 from collections import deque
 from collections.abc import Mapping
-from copy import deepcopy
+from copy import copy
 
 # type Resources = tuple[int, int, int, int]
 
@@ -66,13 +66,29 @@ class State:
     self.remaining_time = time_limit
     self.resources: tuple[int, int, int, int] = (0, 0, 0, 0)
     self.robots: tuple[int, int, int, int] = (1, 0, 0, 0)
-    self.current_building_robot: ResourceType | None = None
     self.debug_build_history: list[ResourceType] = []
 
     self.perm_robot_blacklist = set[ResourceType]()
 
     self.time_to_build_robot: dict[ResourceType, int] = {}
     self._calculate_time_to_build_robots()
+
+  def __copy__(self):
+    state = State(self.blueprint, self.time_limit, self.debug)
+
+    state.remaining_time = self.remaining_time
+    state.resources = tuple[int, int, int, int](self.resources)
+    state.robots = tuple[int, int, int, int](self.robots)
+
+    if self.debug:
+      state.debug_build_history = list(self.debug_build_history)
+
+    if len(self.perm_robot_blacklist) > 0:
+      state.perm_robot_blacklist = set(self.perm_robot_blacklist)
+
+    state.time_to_build_robot = dict(self.time_to_build_robot)
+
+    return state
 
   def get_geodes(self) -> int:
     return self.get_resource_qty(ResourceType.GEODE)
@@ -251,7 +267,7 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
             continue
 
           if current_state.is_it_worth_to_build_robot(type):
-            new_state = deepcopy(current_state)
+            new_state = copy(current_state)
 
             new_state.elapse_time_and_build_robot(type)
             states_array.append(new_state)
