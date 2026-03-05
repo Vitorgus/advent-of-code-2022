@@ -195,17 +195,17 @@ class State:
       cost = self.blueprint.robot_costs[type]
       most_time = 0
 
-      # OPTIMIZAR ISSO AQUI
-      for index in range(len(cost)):
-        if self.robots[index] == 0:
-          if cost[index] == 0:
-            continue
-          else:
-            most_time = -1
-            break
-
-        resouce_time = math.ceil((cost[index] - self.resources[index]) / self.robots[index])
-        most_time = max(resouce_time, most_time)
+      match type:
+        case ResourceType.ORE | ResourceType.CLAY:
+          most_time = math.ceil((get_single_resource(cost, ResourceType.ORE) - self.get_resource_qty(ResourceType.ORE)) / self.get_robots_qty(ResourceType.ORE))
+        case ResourceType.OBSIDIAN:
+          ore_time = math.ceil((get_single_resource(cost, ResourceType.ORE) - self.get_resource_qty(ResourceType.ORE)) / self.get_robots_qty(ResourceType.ORE))
+          clay_time = math.ceil((get_single_resource(cost, ResourceType.CLAY) - self.get_resource_qty(ResourceType.CLAY)) / self.get_robots_qty(ResourceType.CLAY))
+          most_time = max(ore_time, clay_time)
+        case ResourceType.GEODE:
+          ore_time = math.ceil((get_single_resource(cost, ResourceType.ORE) - self.get_resource_qty(ResourceType.ORE)) / self.get_robots_qty(ResourceType.ORE))
+          obsidian_time = math.ceil((get_single_resource(cost, ResourceType.OBSIDIAN) - self.get_resource_qty(ResourceType.OBSIDIAN)) / self.get_robots_qty(ResourceType.OBSIDIAN))
+          most_time = max(ore_time, obsidian_time)
 
       self.time_to_build_robot[type] = most_time
 
