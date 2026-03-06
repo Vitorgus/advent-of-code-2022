@@ -100,11 +100,15 @@ class CustomList:
       node.prev = node
 
       # calculate how much to move
-      # IMPROVE HERE
-      counter = abs(node.data)
+      counter = node.data % (self.size - 1)
+      clockwise = True
+
+      if counter > node.data // 2:
+        counter = self.size - 1 - counter
+        clockwise = False
 
       while counter > 0:
-        aux = aux.next if node.data > 0 else aux.prev
+        aux = aux.next if clockwise else aux.prev
         counter -= 1
 
       # Add node in new position
@@ -123,17 +127,22 @@ class CustomList:
       return -1
 
     sum = 0
-    aux = self.zero
-    count = 0
 
-    # TAMBÉM OTIMIZAR ISSO AQUI
-    while count <= 3000:
-      count += 1
-      aux = aux.next
+    for i in [1000, 2000, 3000]:
+      aux = self.zero
 
-      if count % 1000 == 0:
-        print(f'{count}: {aux.data}')
-        sum += aux.data
+      counter = i % self.size
+      clockwise = True
+
+      if counter > i // 2:
+        counter = self.size - counter
+        clockwise = False
+
+      while counter > 0:
+        aux = aux.next if clockwise else aux.prev
+        counter -= 1
+
+      sum += aux.data
 
     return sum
 
