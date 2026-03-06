@@ -8,7 +8,7 @@ start_time = time.time()
 
 # Puzzle inputs and settings
 FILE_NAME = "input.txt"
-DEBUG_PRINT = True
+DEBUG_PRINT = False
 ROOT_MONKEY = "root"
 
 
@@ -69,8 +69,9 @@ class MathMonkey(BaseMonkey):
     return f'{super().__str__()}: {self.monkey_1} {self.operator.value} {self.monkey_2}'
 
 class MonkeyGraph:
-  def __init__(self) -> None:
+  def __init__(self, debug: bool = False) -> None:
     self.monkeys: dict[str, BaseMonkey] = {}
+    self.debug = debug
 
   def add_monkey(self, monkey: BaseMonkey) -> None:
     self.monkeys[monkey.name] = monkey
@@ -82,12 +83,19 @@ class MonkeyGraph:
     monkey = self.get_monkey(name)
 
     if isinstance(monkey, NumberMonkey):
+      if self.debug:
+        print(f'Monkey {monkey.name}: value {monkey.value}')
       return monkey.value
     elif isinstance(monkey, MathMonkey):
-      monkey_1 = self.get_monkey_value(monkey.monkey_1)
-      monkey_2 = self.get_monkey_value(monkey.monkey_2)
+      value_1 = self.get_monkey_value(monkey.monkey_1)
+      value_2 = self.get_monkey_value(monkey.monkey_2)
 
-      return MathOperator.perform_operation(monkey_1, monkey_2, monkey.operator)
+      result = MathOperator.perform_operation(value_1, value_2, monkey.operator)
+
+      if self.debug:
+        print(f'Monkey {monkey.name}: {monkey.monkey_1} {monkey.operator.value} {monkey.monkey_2} = {value_1} {monkey.operator.value} {value_2} = {result}')
+
+      return result
 
     return -1
 
@@ -99,7 +107,7 @@ def get_filepath(file):
 
 
 # Puzzle input parse
-monkey_graph = MonkeyGraph()
+monkey_graph = MonkeyGraph(DEBUG_PRINT)
 
 with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
   for line in f:
