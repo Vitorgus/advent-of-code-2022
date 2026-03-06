@@ -14,7 +14,7 @@ start_time = time.time()
 # Puzzle inputs and settings
 FILE_NAME = "input.txt"
 DEBUG_PRINT = False
-TIME_LIMIT = 24
+TIME_LIMIT = 32
 
 
 class ResourceType(Enum):
@@ -68,7 +68,7 @@ class State:
     self.robots: tuple[int, int, int, int] = (1, 0, 0, 0)
     self.debug_build_history: list[ResourceType] = []
 
-    self.perm_robot_blacklist = set[ResourceType]()
+    self.robot_blacklist = set[ResourceType]()
 
     self.time_to_build_robot: dict[ResourceType, int] = {}
     self._calculate_time_to_build_robots()
@@ -77,14 +77,13 @@ class State:
     state = State(self.blueprint, self.time_limit, self.debug)
 
     state.remaining_time = self.remaining_time
-    state.resources = tuple[int, int, int, int](self.resources)
-    state.robots = tuple[int, int, int, int](self.robots)
+    state.resources = self.resources
+    state.robots = self.robots
 
     if self.debug:
       state.debug_build_history = list(self.debug_build_history)
 
-    if len(self.perm_robot_blacklist) > 0:
-      state.perm_robot_blacklist = set(self.perm_robot_blacklist)
+    state.robot_blacklist = self.robot_blacklist
 
     state.time_to_build_robot = dict(self.time_to_build_robot)
 
@@ -139,7 +138,7 @@ class State:
         current_robots = add_resources(current_robots, get_resource_unit_tuple(next_robot))
         is_building_robot = False
 
-        print(f'The new {get_robot_type_string(next_robot)} is ready; you have {get_single_resource(current_robots, next_robot)} of them.')
+        print(f'The new {get_robot_type_string(next_robot)} robot is ready; you have {get_single_resource(current_robots, next_robot)} of them.')
 
         robot_index += 1
 
@@ -150,14 +149,13 @@ class State:
 
       print()
 
-
   def is_it_worth_to_build_robot(self, type: ResourceType) -> bool:
     time_to_build = self.time_to_build_robot[type]
 
     if time_to_build < 0:
       return False
 
-    if type in self.perm_robot_blacklist:
+    if type in self.robot_blacklist:
       return False
 
     return time_to_build + 1 < self.remaining_time
@@ -183,7 +181,8 @@ class State:
         resource_blueprint_qty = get_single_resource(self.blueprint.max_cost, robot_type)
 
         if robot_qty >= resource_blueprint_qty:
-          self.perm_robot_blacklist.add(robot_type)
+          self.robot_blacklist = set(self.robot_blacklist)
+          self.robot_blacklist.add(robot_type)
 
     self._calculate_time_to_build_robots()
 
@@ -203,7 +202,7 @@ class State:
       if (
           (type == ResourceType.OBSIDIAN and self.get_robots_qty(ResourceType.CLAY) == 0)
           or (type == ResourceType.GEODE and self.get_robots_qty(ResourceType.OBSIDIAN) == 0)
-          or type in self.perm_robot_blacklist
+          or type in self.robot_blacklist
       ):
         self.time_to_build_robot[type] = -1
         continue
@@ -213,21 +212,45 @@ class State:
 
       match type:
         case ResourceType.ORE | ResourceType.CLAY:
-          most_time = math.ceil((get_single_resource(cost, ResourceType.ORE) - self.get_resource_qty(ResourceType.ORE)) / self.get_robots_qty(ResourceType.ORE))
+          ore_cost = get_single_resource(cost, ResourceType.ORE)
+          ore_qty = self.get_resource_qty(ResourceType.ORE)
+
+          if ore_qty >= ore_cost:
+            most_time = 0
+          else:
+            most_time = math.ceil((ore_cost - ore_qty) / self.get_robots_qty(ResourceType.ORE))
+
         case ResourceType.OBSIDIAN:
-          ore_time = math.ceil((get_single_resource(cost, ResourceType.ORE) - self.get_resource_qty(ResourceType.ORE)) / self.get_robots_qty(ResourceType.ORE))
-          clay_time = math.ceil((get_single_resource(cost, ResourceType.CLAY) - self.get_resource_qty(ResourceType.CLAY)) / self.get_robots_qty(ResourceType.CLAY))
-          most_time = max(ore_time, clay_time)
+          ore_cost = get_single_resource(cost, ResourceType.ORE)
+          ore_qty = self.get_resource_qty(ResourceType.ORE)
+          clay_cost = get_single_resource(cost, ResourceType.CLAY)
+          clay_qty = self.get_resource_qty(ResourceType.CLAY)
+
+          if ore_qty >= ore_cost and clay_qty >= clay_cost:
+            most_time = 0
+          else:
+            ore_time = math.ceil((ore_cost - ore_qty) / self.get_robots_qty(ResourceType.ORE))
+            clay_time = math.ceil((clay_cost - clay_qty) / self.get_robots_qty(ResourceType.CLAY))
+            most_time = max(ore_time, clay_time)
+
         case ResourceType.GEODE:
-          ore_time = math.ceil((get_single_resource(cost, ResourceType.ORE) - self.get_resource_qty(ResourceType.ORE)) / self.get_robots_qty(ResourceType.ORE))
-          obsidian_time = math.ceil((get_single_resource(cost, ResourceType.OBSIDIAN) - self.get_resource_qty(ResourceType.OBSIDIAN)) / self.get_robots_qty(ResourceType.OBSIDIAN))
-          most_time = max(ore_time, obsidian_time)
+          ore_cost = get_single_resource(cost, ResourceType.ORE)
+          ore_qty = self.get_resource_qty(ResourceType.ORE)
+          obsidian_cost = get_single_resource(cost, ResourceType.OBSIDIAN)
+          obsidian_qty = self.get_resource_qty(ResourceType.OBSIDIAN)
+
+          if ore_qty >= ore_cost and obsidian_qty >= obsidian_cost:
+            most_time = 0
+          else:
+            ore_time = math.ceil((ore_cost - ore_qty) / self.get_robots_qty(ResourceType.ORE))
+            obsidian_time = math.ceil((obsidian_cost - obsidian_qty) / self.get_robots_qty(ResourceType.OBSIDIAN))
+            most_time = max(ore_time, obsidian_time)
 
       self.time_to_build_robot[type] = most_time
 
 
 # Main function
-def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
+def get_max_geodes(blueprint: Blueprint, time_limit: int) -> int:
   max_geodes_state = State(blueprint, time_limit, DEBUG_PRINT)
   max_geode_prediction = 0
 
@@ -239,9 +262,6 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
 
   while len(states_array) > 0:
     current_state = states_array.popleft()
-
-    # if len(states_array) > max_nodes:
-    #   max_nodes = len(states_array)
 
     if current_state.remaining_time <= 0:
       if current_state.get_geodes() > max_geode_prediction:
@@ -293,14 +313,12 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
     max_geodes_state.elapse_remaining_time()
 
   if max_geodes_state.debug:
-    print(f'Max geodes for blueprint {new_blueprint.id}: {max_geodes_state.get_geodes()} | Quality level: {max_geodes_state.get_geodes() * blueprint.id}\n\n')
+    print(f'Max geodes for blueprint {new_blueprint.id}: {max_geodes_state.get_geodes()}\n\n')
 
     if max_geodes_state.get_geodes() > 0:
       max_geodes_state.print_build_history()
 
-  # print(f'Max nodes for blueprint {new_blueprint.id}: {max_nodes}')
-
-  return max_geodes_state.get_geodes() * blueprint.id
+  return max_geodes_state.get_geodes()
 
 # Helper functions
 def get_robot_type_string(type: ResourceType) -> str:
@@ -406,9 +424,12 @@ def get_blueprint_data(line):
 
   return ()
 
-quality_sum = 0
+geodes_mult = 1
+blueprints_number = 3
 
 with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
+  blueprint_count = 0
+
   for line in f:
     l_strip = line.strip()
 
@@ -419,13 +440,18 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
       if DEBUG_PRINT:
         new_blueprint.print_info()
 
-      quality_level = calculate_quality_level(new_blueprint, TIME_LIMIT)
-      quality_sum += quality_level
+      geodes = get_max_geodes(new_blueprint, TIME_LIMIT)
+      geodes_mult *= geodes
+
+      blueprint_count += 1
+
+      if blueprint_count >= blueprints_number:
+        break
 
 if DEBUG_PRINT:
-  print(f'Quality sum = {quality_sum}')
+  print(f'Geodes mult for the first three blueprints = {geodes_mult}')
 else:
-  print(quality_sum)
+  print(geodes_mult)
 
 print()
 print(f'Execution time: {(time.time() - start_time):.2f}s')

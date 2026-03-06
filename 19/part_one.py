@@ -11,7 +11,7 @@ from copy import deepcopy
 start_time = time.time()
 
 # Puzzle inputs and settings
-FILE_NAME = "example.txt"
+FILE_NAME = "input.txt"
 DEBUG_PRINT = False
 TIME_LIMIT = 24
 
@@ -197,7 +197,6 @@ def calculate_quality_level(blueprint: Blueprint, time_limit: int) -> int:
   # começar while loop de enquanto ainda tem estado na fila
   while len(states_array) > 0:
     current_state = states_array.popleft()
-    print(f'blueprint {blueprint.id} | states len = {len(states_array)} | current time = {current_state.time}')
 
     if current_state.time >= time_limit:
       if current_state.get_geodes() > max_geodes_state.get_geodes():
