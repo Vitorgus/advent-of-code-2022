@@ -79,21 +79,21 @@ class MonkeyGraph:
   def get_monkey(self, name: str) -> BaseMonkey:
     return self.monkeys[name]
 
-  def get_monkey_value(self, name: str) -> int:
+  def get_monkey_value(self, name: str, depth: int = 0) -> int:
     monkey = self.get_monkey(name)
 
     if isinstance(monkey, NumberMonkey):
       if self.debug:
-        print(f'Monkey {monkey.name}: value {monkey.value}')
+        print(f'{"| " * depth}Monkey {monkey.name}: value {monkey.value}')
       return monkey.value
     elif isinstance(monkey, MathMonkey):
-      value_1 = self.get_monkey_value(monkey.monkey_1)
-      value_2 = self.get_monkey_value(monkey.monkey_2)
+      value_1 = self.get_monkey_value(monkey.monkey_1, depth+1)
+      value_2 = self.get_monkey_value(monkey.monkey_2, depth+1)
 
       result = MathOperator.perform_operation(value_1, value_2, monkey.operator)
 
       if self.debug:
-        print(f'Monkey {monkey.name}: {monkey.monkey_1} {monkey.operator.value} {monkey.monkey_2} = {value_1} {monkey.operator.value} {value_2} = {result}')
+        print(f'{"| " * depth}Monkey {monkey.name}: {monkey.monkey_1} {monkey.operator.value} {monkey.monkey_2} = {value_1} {monkey.operator.value} {value_2} = {result}')
 
       return result
 
@@ -130,6 +130,9 @@ with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
         monkey = MathMonkey(name, monkey_1, monkey_2, operator)
 
       monkey_graph.add_monkey(monkey)
+
+if DEBUG_PRINT:
+  print()
 
 print(monkey_graph.get_monkey_value(ROOT_MONKEY))
 
