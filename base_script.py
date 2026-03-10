@@ -1,10 +1,11 @@
 import os
 import time
+import sys
 
 start_time = time.time()
 
 # Puzzle inputs and settings
-FILE_NAME = "example.txt"
+DEFAULT_FILE_NAME = "example.txt"
 DEBUG_PRINT = True
 
 # Helper funcions and classes
@@ -13,13 +14,18 @@ def get_filepath(file):
   return os.path.join(absolute_path, file)
 
 # Puzzle input parse
-with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
-  for line in f:
-    l_strip = line.strip()
+file_name = sys.argv[1] if len(sys.argv) >= 2 else DEFAULT_FILE_NAME
 
-    if l_strip != "":
-      # TODO
-      pass
+try:
+  with open(get_filepath(file_name), encoding="utf-8") as f:
+    for line in f:
+      l_strip = line.strip()
 
-print()
-print(f'Execution time: {(time.time() - start_time):.2f}s')
+      if l_strip != "":
+        # TODO
+        pass
+
+  print()
+  print(f'Execution time: {(time.time() - start_time):.2f}s')
+except FileNotFoundError:
+  print(f'No such file: {file_name}')
