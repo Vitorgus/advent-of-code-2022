@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 import time
+import sys
 
 from enum import Enum, auto
 
 start_time = time.time()
 
 # Puzzle inputs and settings
-FILE_NAME = "input.txt"
+DEFAULT_FILE_NAME = "input.txt"
 DEBUG_PRINT = False
 
 SPACE_CHAR = '.'
@@ -206,34 +207,39 @@ def get_filepath(file):
 state = State(DEBUG_PRINT)
 instructions: list[str] = []
 
-with open(get_filepath(FILE_NAME), encoding="utf-8") as f:
-  for line in f:
-    l_strip = line.rstrip()
+file_name = sys.argv[1] if len(sys.argv) >= 2 else DEFAULT_FILE_NAME
 
-    if l_strip != "":
-      if SPACE_CHAR in l_strip or WALL_CHAR in l_strip:
-        state.add_map_line(list(l_strip))
-      else:
-        current_instruction = ''
+try:
+  with open(get_filepath(file_name), encoding="utf-8") as f:
+    for line in f:
+      l_strip = line.rstrip()
 
-        for char in l_strip:
-          if char.isdecimal():
-            current_instruction += char
-          else:
+      if l_strip != "":
+        if SPACE_CHAR in l_strip or WALL_CHAR in l_strip:
+          state.add_map_line(list(l_strip))
+        else:
+          current_instruction = ''
+
+          for char in l_strip:
+            if char.isdecimal():
+              current_instruction += char
+            else:
+              instructions.append(current_instruction)
+              current_instruction = ''
+              instructions.append(char)
+
+          if current_instruction != '':
             instructions.append(current_instruction)
-            current_instruction = ''
-            instructions.append(char)
 
-        if current_instruction != '':
-          instructions.append(current_instruction)
+  password = state.find_password(instructions)
 
-password = state.find_password(instructions)
+  if DEBUG_PRINT:
+    state.print_map()
+    print()
 
-if DEBUG_PRINT:
-  state.print_map()
+  print(password)
+
   print()
-
-print(password)
-
-print()
-print(f'Execution time: {(time.time() - start_time):.2f}s')
+  print(f'Execution time: {(time.time() - start_time):.2f}s')
+except FileNotFoundError:
+  print(f'No such file: {file_name}')
